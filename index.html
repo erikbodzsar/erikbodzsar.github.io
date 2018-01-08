@@ -602,7 +602,7 @@ addNewMod = function() {
   }];
   
   var idx;
-  for (idx = 0; idx + 1 < mods.length && mods[idx+1][0] <= date; idx++) {}
+  for (idx = 0; idx < mods.length && mods[idx][0] <= date; idx++) {}
   mods.splice(idx, 0, newMod);
   
   refresh();
