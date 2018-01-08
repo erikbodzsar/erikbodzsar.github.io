@@ -610,8 +610,10 @@ addNewMod = function() {
 
 removeMod = function(idx) {
   mods.splice(idx, 1);
-  if (idx < mods.length) {
-    clearPortfoliosAfter(mods[idx][0]);
+  if (idx > 0) {
+    clearPortfoliosAfter(mods[idx-1][0]);
+  } else {
+    validPortfoliosEnd = 1;
   }
   refresh();
 }
