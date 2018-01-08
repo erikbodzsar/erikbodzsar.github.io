@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset = "utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+<!--  <script src="d3.v4.min.js"></script> -->
+  
+  <style>
+    body {
+      background-color: white;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+    }
+
+    p {
+      font-family: verdana;
+      font-size: 20px;
+    }
+	
+	.portfolioHeader {
+	  background-color: yellow;
+	}
+	
+	.portfolio {
+	  float: left;
+	  padding: 2px;
+	  margin-top: 5px;
+	  margin-left: 5px;
+	  margin-right: 5px;
+	  margin-bottom: 5px;
+	  background-color: cornflowerblue;
+	}
+	
+	.incomesContainer {
+	  background-color: darkgreen;
+	  padding: 2px;
+	}
+	
+	.expensesContainer {
+	  background-color: darkred;
+	  padding: 2px;
+	}
+	
+	.investmentsContainer {
+	  background-color: green;
+	  padding: 2px;
+	}
+	
+	.debtsContainer {
+	  background-color: red;
+	  padding: 2px;
+	}
+  </style>
+</head>
+
+<body>
+
+<select id="interestSelect">
+  <option value="yearly">yearly</option>
+  <option value="monthly">monthly</option>
+</select>
+
+<!--
+<div id="addExpense" style="position:absolute; top:200px; left:200px; z-index:9; display:none">
+<p><input type="text" value="name" id="addExpenseName"></p>
+<p><input type="text" value="123" id="addExpenseMonthly"></p>
+<input type="button" value="add" id="addExpenseAdd" onclick="addExpense()">
+</div>
+-->
+
+<input class="url" type="text" value="url"><input type="button" onclick="urlClick()" value="copy URL">
+
+<table><tr>
+<td><svg class="chart" onclick="click()"></svg></td>
+<td><div class="breakdown">
+<div class="date"></div>
+<div class="cash"></div>
+</div></td>
+</tr></table>
+
+<div id="initial" class="portfolio">
+  <div class="portfolioHeader">Starting portfolio</div>
+  <div class="portfolioBody">
+    <div class="cashContainer"><input type="text"></div>
+    <div class="incomesContainer"></div>
+    <div class="expensesContainer"></div>
+    <div class="investmentsContainer"></div>
+    <div class="debtsContainer"></div>
+  </div>
+</div>
+
+<!-- <svg width="500" height="100"><g class="slider"></g></svg> -->
+
+<div class="mods"></div>
+
+<input type="date" id="newModDate">
+<input type="button" id="addNewMod" value="Add new life event" onclick="addNewMod()">
+
+<!--
+<form name="new_investment" onSubmit="newInvestment()">
+            <input type="text" id="name" placeholder="Name"><br>
+            <input type="initial" id="initial" placeholder="Initial value"><br>
+            <input type="monthly +/-" id="monthly" placeholder="Monthly +/0"><br>
+            <input type="monthly rate" id="rate" placeholder="Monthly rate"><br>
+            <input name="Submit"  type="submit" value="Add" >
+</form>
+-->
+
+<script type="text/javascript">
+
+mouseX = 0;
+mouseY = 0;
+
+addExpense = function(i) {
+  var addExpenseDiv = d3.select("#addExpense");
+  mods[i][1].new_expense.push({
+    id: nextId++,
+	expense: {
+      name: addExpenseDiv.select("#addExpenseName").property("value"),
+      monthly: Number(addExpenseDiv.select("#addExpenseMonthly").property("value")),
+      start: 0,
+      interest: 0,
+	},
+  });
+  addExpenseDiv.style("display", "none");
+  
+  validPortfoliosEnd = 1;
+  fillModsTable();
+  refreshChart();
+}
+
+newExpenseDialog = function(i) {
+  var div = d3.select("#addExpense");
+  div.style("display", "inline").style("top", mouseY + "px").style("left", mouseX+"px");
+  div.select("#addExpenseAdd").attr("onclick", "addExpense("+i+")");
+}
+
+values = function(investment, from, to) {
+  var ret = [{date: new Date(from), value: investment.start}];
+  for (i = new Date(from); i < to; i.setMonth(i.getMonth()+1)) {
+    var prev = ret[ret.length-1];
+    ret.push({date: new Date(i), value: prev.value + prev.value*investment.interest + investment.monthly});
+  }
+  return ret;
+}
+
+initSlider0 = function(slider) {
+  var width = 400;
+  var height = 10;
+  slider.attr("transform", "translate(10, 10)");
+  slider.append("rect").attr("width", width).attr("height", height).attr("style", "stroke:rgb(0,0,0);stroke-width:2;fill:rgb(255,255,255)");
+}
+
+// elem is a svg g
+initSlider = function(slider, begin, end, values, callback) {
+  var width = 400;
+  var height = 10;
+  var xScale = d3.scaleLinear().domain([begin, end]).range([0, width]);
+  sums = [values[0][1]];
+  for (i=1; i < values.length; i++) {
+    sums.push(sums[i-1]+values[i][1]);
+  }
+  var fillers = slider.selectAll(".filler").data(values);
+  var newFillers = fillers
+      .enter()
+          .append("rect")
+              .attr("y", 2)
+              .attr("height", height-4)
+              .attr("class", "filler");
+  var allFillers = newFillers.merge(fillers);
+  allFillers
+      .attr("x", (d,i) => xScale(i == 0 ? 0 : sums[i-1]))
+      .attr("width", d => xScale(d[1]))
+      .attr("style", d => "fill:" + colors[d[0]])
+  fillers.exit().remove();
+
+  var markers = slider.selectAll(".marker").data(sums)
+      .enter()
+          .append("circle")
+              .attr("cx", d => xScale(d))
+              .attr("cy", height/2)
+              .attr("r", 10)
+              .attr("class", "marker")
+              .call(d3.drag().on("drag", function(d, i) { 
+                var newValue = xScale.invert(d3.event.x);
+                var delta = newValue - sums[i];
+                var markers = d3.select(this.parentNode).selectAll(".marker");
+                for (j = i; j < sums.length; j++) {
+                  sums[j] += delta;
+                }
+				values[0][1] = sums[0];
+				for (i = 1; i < sums.length; i++) {
+				  values[i][1] = sums[i] - sums[i-1];
+				}
+                markers.data(sums).attr("cx", d => xScale(d));
+				slider.selectAll(".filler").data(values).attr("x", (d,i) => xScale(i == 0 ? 0 : sums[i-1]))
+                    .attr("width", d => xScale(d[1]));
+				callback();
+        	  }))
+      .exit().remove();
+}
+
+stacked = true;
+width = 1000;
+height = 500;
+
+start = new Date(2018, 0, 0);
+end = new Date(2030, 0, 0);
+	
+yScale = d3.scaleLinear()
+        .domain([80000.0, 5000000.0])
+        .range([height-100, 0]);
+xScale = d3.scaleTime()
+        .domain([start, end])
+        .range([0, width]);
+
+mouseMove = function() {
+  var x = d3.mouse(this)[0]
+  fillBreakdown(xScale.invert(x))
+}
+bodyMouseMove = function() {
+  mouseX = d3.mouse(this)[0];
+  mouseY = d3.mouse(this)[1];
+}
+d3.select("body").on("mousemove", bodyMouseMove);
+d3.select(".chart").on("mousemove", mouseMove);
+
+colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
+
+investments = {};
+nextId = 1;
+
+investments[nextId++] = {
+  name: "dummy investment",
+  start: 100000.0,
+  interest: 0.04/12,
+  monthly: 1000.0,
+};
+
+portfolio = {
+  cash: 100000,
+  investments: investments,
+  debts:{},
+  incomes: {},
+  expenses: {},
+};
+
+portfolio.incomes[nextId++] = {
+  name: "dummy income",
+  monthly: 5000,
+  start: 0,
+  interest: 0,
+};
+portfolio.expenses[nextId++] = {
+  name: "dummy expense",
+  monthly: 2000,
+  start: 0,
+  interest: 0,
+};
+
+portfolios = [[start, portfolio]];
+
+getId = function(name, portfolio) {
+  for (var p in portfolio) {
+    for (var id in portfolio[p]) {
+      if (portfolio[p][id].name == name) return id;
+	}
+  }
+}
+
+mods = [];
+/*
+mods.push([new Date(2018, 10, 1), {
+  change_income: [
+  {
+    id: getId("dummy income", portfolios[0][1]),
+    income: {
+      monthly: 100,
+    }
+  }],
+  change_investment: [
+  {
+    id: getId("dummy investment", portfolios[0][1]),
+    investment: {
+      monthly: 0,
+    }
+  },
+  ],
+  new_expense: [],
+  change_expense: [],
+  change_debt: [],
+}]);
+*/
+
+createURLParam = function() {
+  var json = JSON.stringify([portfolios[0],mods]);
+  return btoa(json);
+}
+createURL = function() {
+  return window.location.origin + window.location.pathname + "?data=" + createURLParam();
+}
+const dateFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+function parseDate(key, value) {
+    if (typeof value === "string" && dateFormat.test(value)) {
+        return new Date(value);
+    }
+    return value;
+}
+initFromURLParam = function() {
+  var params = new URLSearchParams(window.location.search);
+  var encoded = params.get("data");
+  if (encoded != null) {
+    var data = JSON.parse(atob(encoded), parseDate);
+	portfolios = [data[0]];
+	mods = data[1];
+  }
+}
+initFromURLParam();
+urlClick = function() {
+  d3.select(".url").attr("value", createURL());
+  d3.select(".url").node().select();
+  document.execCommand('copy');
+}
+
+applyMod = function(portfolio, mod) {
+  mod.change_income.map(x => Object.assign(portfolio.incomes[x.id], x.income));
+  mod.change_expense.map(x => Object.assign(portfolio.expenses[x.id], x.expense));
+  mod.change_investment.map(x => Object.assign(portfolio.investments[x.id], x.investment));
+  mod.change_debt.map(x => Object.assign(portfolio.debts[x.id], x.debt));
+  mod.new_expense.map(x => { portfolio.expenses[x.id] = x.expense });
+}
+
+// returns overall monthly +/-
+balance = function(portfolio) {
+  var ret = 0;
+  ["investments", "expenses"].forEach(function(p) {
+    for (var id in portfolio[p]) {
+	  ret -= portfolio[p][id].monthly;
+	}
+  });
+  ["incomes", "debts"].forEach(function(p) {
+    for (var id in portfolio[p]) {
+	  ret += portfolio[p][id].monthly;
+	}
+  });
+  return ret;
+}
+
+fillNextPortfolio = function(portfolio, nextPortfolio) {
+// TODO!
+  var copy = function(x) {
+    var c = {};
+	for (var id in x) {
+      c[id] = Object.assign({}, x[id]);
+	};
+	return c;
+  }
+  var next = nextPortfolio;
+  Object.assign(next, {
+    cash: portfolio.cash + balance(portfolio),
+    investments: copy(portfolio.investments),
+    debts: copy(portfolio.debts),
+    incomes: copy(portfolio.incomes),
+    expenses: copy(portfolio.expenses),
+  });
+  var update = function(x) {
+    x.start = x.start + x.start * x.interest + x.monthly;
+  };
+  for (var p in next) {
+    for (var id in next[p]) {
+	  update(next[p][id]);
+	}
+  }
+  return next;
+}
+
+validPortfoliosEnd = 1;
+
+fillPortfolios = function(until) {
+  var last = portfolios[validPortfoliosEnd-1];
+  var nextMonth = function(date) {
+    date.setMonth(date.getMonth()+1);
+    return date;
+  }
+  var mods_idx = 0;
+  for (var date = nextMonth(new Date(last[0])); date <= until; nextMonth(date)) {
+    last = portfolios[validPortfoliosEnd-1];
+    for (; mods_idx < mods.length && mods[mods_idx][0] < last[0]; mods_idx++) {}
+    if (validPortfoliosEnd == portfolios.length) {
+	  portfolios.push([new Date(date), {}]);
+	}
+	fillNextPortfolio(portfolios[validPortfoliosEnd-1][1], portfolios[validPortfoliosEnd][1]);
+	var next = nextMonth(new Date(date));
+	for (; mods_idx < mods.length && mods[mods_idx][0] < next; mods_idx++) {
+	  applyMod(portfolios[validPortfoliosEnd][1], mods[mods_idx][1]);
+	}
+	validPortfoliosEnd++;
+  }
+}
+fillPortfolios(end);
+
+
+getPortfolio = function(date) {
+  fillPortfolios(date);
+  for (var i = 0; i < portfolios.length - 1; i++) {
+    if (portfolios[i][0] <= date && portfolios[i+1][0] > date) {
+      return portfolios[i];
+    }
+  }
+  return portfolios[portfolios.length-1];
+}
+
+clearPortfoliosAfter = function(date) {
+  var idx = 0;
+  for (; idx < portfolios.length; idx++) {
+    if (portfolios[idx][0] > date) {
+	  break;
+	}
+  }
+  validPortfoliosEnd = idx;
+}
+
+dateToString = function(d) {
+ return "" + d.getFullYear() + "/" + (d.getMonth()+1) + "/" + d.getDate()
+}
+
+fillBreakdown = function(date) {
+  d3.select(".breakdown").select(".date").text(dateToString(date));
+  var portfolio = getPortfolio(date)[1];
+  var values = [["total", 0], ["cash", portfolio.cash]];
+  var total = portfolio.cash;
+  for (var id in portfolio.investments) {
+    total = total + portfolio.investments[id].start;
+    values.push([portfolio.investments[id].name, portfolio.investments[id].start]);
+  }
+  values[0][1] = total;
+  // TODO: cash, debts
+  var breakdownValues = d3.select(".breakdown").selectAll(".breakdownValue").data(values);
+  breakdownValues.text(d => d[0] + ": " + Math.round(d[1]));
+  breakdownValues.enter().append("div").attr("class", "breakdownValue");
+  breakdownValues.exit().remove();
+}
+
+refresh = function () {
+  console.log("refreshing");
+  refreshChart();
+  fillInitialTable();
+//  fillInitialSlider();
+  fillModsTable();
+};
+
+fillInitialTable = function() {
+  var initialPortfolio = d3.select("#initial").select(".portfolioBody");
+  initialPortfolio.datum(portfolios[0]);
+  portfolioTable(initialPortfolio, x => x, true, function(data, kind, id, property, value) {
+    data[1][kind][id][property] = value;
+    validPortfoliosEnd = 1;
+	refresh();
+  });
+}
+
+d3.select("#interestSelect").on("input", function() { refresh(); });
+
+ancestor = function(node, n) {
+  if (n <= 0) return node;
+  return ancestor(node.parentNode, n-1);
+}
+
+portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
+  var cashContainer = container.select(".cashContainer");
+  var cash = cashContainer.select("input");
+  cash.on("input", function() { getPortfolioFn(d3.select(this).datum())[1].cash = Number(this.value); validPortfoliosEnd = 1; refresh(); });
+  if (!isInitial) {
+    cash.attr("disabled", "");
+  }
+  cash.attr("value", d => getPortfolioFn(d)[1].cash);
+  cash.property("value", d => getPortfolioFn(d)[1].cash);
+  
+  var isNumeric = function(property) {
+    if (property == "name") return false;
+	return true;
+  };
+  var printProperty = function(property, value) {
+    if (property == "interest" && d3.select("#interestSelect").node().value == "yearly") {
+	  value = value * 12;
+	}
+	return "" + value;
+  };
+  var parseProperty = function(property, value) {
+    if (isNumeric(property)) value = Number(value);
+    if (property == "interest" && d3.select("#interestSelect").node().value == "yearly") {
+	  value = value / 12;
+	}
+	return value;
+  };
+
+  var addProperty = function(newContainers, allContainers, property, enabled) {
+    var inputClass = "input-" + property;
+    var input = newContainers.append("input")
+	    .on("input", function() { propertyCb(d3.select(ancestor(this, 4)).datum(), d3.select(this.parentNode).attr("data-kind"), d3.select(this.parentNode).attr("data-id"), property, parseProperty(property, this.value)); })
+		.attr("type", "text")
+		.attr("class", inputClass);
+	if (!enabled) {
+	  input.attr("disabled", "");
+	}
+	allContainers.select("." + inputClass).merge(input)
+		.attr("value", d => printProperty(property, d[1][property]));
+  };
+  var incomeList = ["incomes", "expenses"];
+  for (var idx in incomeList) {
+    var kind = incomeList[idx];
+//    if (Object.keys(portfolio[1][kind]).length == 0) continue;
+    var currentContainer = container.select("."+kind+"Container");
+    var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
+	var newIncomes = incomes.enter().append("div").attr("style", "padding: 2px").attr("class", kind);
+	var newForms = newIncomes.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "float:none");
+    var allForms = incomes.select("form").merge(newForms);
+	addProperty(newForms, allForms, "name", isInitial);
+	newForms.append("br");
+	addProperty(newForms, allForms, "monthly", true);
+  }
+  
+  var investmentList = ["investments", "debts"];
+  for (var idx in investmentList) {
+    var kind = investmentList[idx];
+ //   if (Object.keys(portfolio[1][kind]).length == 0) continue;
+    var currentContainer = container.select("."+kind+"Container");
+    var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
+	var newInvestments = investments.enter().append("div").attr("style", "padding: 2px").attr("class", kind);
+	var newForms = newInvestments.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind);
+    var allForms = investments.select("form").merge(newForms);
+	addProperty(newForms, allForms, "name", isInitial);
+	newForms.append("br");
+	addProperty(newForms, allForms, "start", isInitial);
+	newForms.append("br");
+	addProperty(newForms, allForms, "monthly", true);
+	newForms.append("br");
+	addProperty(newForms, allForms, "interest", true);
+  }
+}
+
+fillInitialTable();
+
+max = function(a,b) { return a > b ? a : b; }
+min = function(a,b) { return a < b ? a : b; }
+
+getTotalIncome = function(portfolio) {
+  var totalIncome = 0;
+  for (var id in portfolio.incomes) {
+    totalIncome += portfolio.incomes[id].monthly;
+  }
+  for (var id in portfolio.expenses) {
+    totalIncome -= portfolio.expenses[id].monthly;
+  }
+  for (var id in portfolio.investments) {
+    totalIncome += max(0, -portfolio.investments[id].monthly);
+  }
+  for (var id in portfolio.debts) {
+    totalIncome += max(0, portfolio.debts[id].monthly);
+  }
+  return totalIncome;
+}
+
+fillInitialSlider = function() {
+  var distribution = [];
+  for (var id in portfolios[0][1].investments) {
+   distribution.push([id, portfolios[0][1].investments[id].monthly]);
+  }
+  // TODO debts
+  initSlider(d3.select(".slider"), 0, getTotalIncome(portfolios[0][1]), distribution, function() {
+    for (i=0; i < distribution.length; i++) {
+	  portfolios[0][1].investments[distribution[i][0]].monthly = distribution[i][1];
+	}
+	validPortfoliosEnd = 1;
+	refresh();
+  });
+}
+
+initSlider0(d3.select(".slider"));
+// fillInitialSlider();
+
+distributionSlider = function() {
+  
+}
+
+addNewMod = function() {
+  var dateInputValue = d3.select("#newModDate").node().value.split("-");
+  var y,m,d;
+  [y,m,d] = dateInputValue;
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return;
+  
+  var date = new Date(y,m-1,d);
+  var newMod = [date, {
+    change_income: [],
+    change_investment: [],
+    new_expense: [],
+    change_expense: [],
+    change_debt: [],
+  }];
+  
+  var idx;
+  for (idx = 0; idx + 1 < mods.length && mods[idx+1][0] <= date; idx++) {}
+  mods.splice(idx, 0, newMod);
+  
+  refresh();
+}
+
+removeMod = function(idx) {
+  mods.splice(idx, 1);
+  if (idx < mods.length) {
+    clearPortfoliosAfter(mods[idx][0]);
+  }
+  refresh();
+}
+
+fillModsTable = function() {
+  var modContainers = d3.select(".mods").selectAll(".portfolio").data(mods, m => m[0]);
+  modContainers.exit().remove();
+  var newModContainers = modContainers.enter().append("div").attr("class", "portfolio");
+  var headers = newModContainers.append("div").attr("class", "portfolioHeader");
+  headers.text(d => dateToString(d[0]));
+  headers.append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
+  var modDetailsContainer = newModContainers.append("div");
+  var body = modDetailsContainer.append("div").attr("class", "portfolioBody");
+  body.append("div").attr("class", "cashContainer").append("input").attr("type", "text").attr("disabled", "");
+  body.append("div").attr("class", "incomesContainer");
+  body.append("div").attr("class", "expensesContainer");
+  body.append("div").attr("class", "investmentsContainer");
+  body.append("div").attr("class", "debtsContainer");
+  
+  var allModContainers = newModContainers.merge(modContainers);
+  allModContainers.attr("data-idx", (d,i) => i);
+  portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
+    false,
+    function(mod, kind, id, property, value) {
+	  var modKind;
+	  var name;
+	  if (kind == "investments") {
+	    modKind = "change_investment";
+		name = "investment";
+	  } else if (kind == "debts") {
+	    modKind = "change_debt";
+		name = "debt";
+      } else if (kind == "expenses") {
+	    modKind = "change_expense";
+		name = "expense";
+	  } else if (kind == "incomes") {
+	    modKind = "change_income";
+		name = "income";
+	  }
+	  if (mod[1][modKind] === undefined) {
+	    mod[1][modKind] = [];
+	  }
+	  var found_idx = null;
+	  for (var idx in mod[1][modKind]) {
+	    if (mod[1][modKind][idx].id == id) {
+		  found_idx = idx;
+		  break;
+		}
+	  }
+	  if (found_idx == null) {
+		found_idx = mod[1][modKind].length;
+	    mod[1][modKind].push({ id: id });
+	  }
+	  if (mod[1][modKind][found_idx][name] === undefined) {
+	    mod[1][modKind][found_idx][name] = {};
+	  }
+	  mod[1][modKind][found_idx][name][property] = value
+	  clearPortfoliosAfter(mod[0]);
+	  refresh();
+   });
+ 
+  return;
+  // TODO
+ 
+  var changeIncomeCells = allModContainers.selectAll(".changeIncomeCell").data(d => d[1].change_income);
+  changeIncomeCells.exit().remove();
+  var newChangeIncomeCell = changeIncomeCells.enter().append("td").attr("class", "changeIncomeCell");
+  newChangeIncomeCell.append("div").attr("class", "name");
+  newChangeIncomeCell.append("input").attr("data-idx", (d,i) => i)
+      .on("input", function() {
+	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].change_income[Number(d3.select(this).attr("data-idx"))].income.monthly = Number(this.value);
+		validPortfoliosEnd = 1; // todo more precise
+		fillModsTable();
+		refreshChart();
+		// todo slider, etc.
+	  });
+  newChangeIncomeCell.merge(changeIncomeCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].incomes[d.id].name;} );
+  newChangeIncomeCell.merge(changeIncomeCells).selectAll("input").attr("value", d => d.income.monthly);
+ 
+  var changeInvestmentCells = allModContainers.selectAll(".changeInvestmentCell").data(d => d[1].change_investment);
+  changeInvestmentCells.exit().remove();
+  var newchangeInvestmentCell = changeInvestmentCells.enter().append("td").attr("class", "changeInvestmentCell");
+  newchangeInvestmentCell.append("div").attr("class", "name");
+  newchangeInvestmentCell.append("input").attr("data-idx", (d,i) => i)
+      .on("input", function() {
+	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].change_investment[Number(d3.select(this).attr("data-idx"))].investment.monthly = Number(this.value);
+		validPortfoliosEnd = 1; // todo more precise
+		fillModsTable();
+		refreshChart();
+		// todo slider, etc.
+	  });
+  newchangeInvestmentCell.merge(changeInvestmentCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].investments[d.id].name;} );
+  newchangeInvestmentCell.merge(changeInvestmentCells).selectAll("input").attr("value", d => d.investment.monthly);
+ 
+  var newExpenseCells = allModContainers.selectAll(".newExpenseCell").data(d => d[1].new_expense);
+  newExpenseCells.exit().remove();
+  var newnewExpenseCell = newExpenseCells.enter().append("td").attr("class", "newExpenseCell");
+  newnewExpenseCell.append("div").attr("class", "name");
+  newnewExpenseCell.append("input").attr("data-idx", (d,i) => i)
+      .on("input", function() {
+	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].new_expense[Number(d3.select(this).attr("data-idx"))].expense.monthly = Number(this.value);
+		validPortfoliosEnd = 1; // todo more precise
+		fillModsTable();
+		refreshChart();
+		// todo slider, etc.
+	  });
+  newnewExpenseCell.merge(newExpenseCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].expenses[d.id].name;} );
+  newnewExpenseCell.merge(newExpenseCells).selectAll("input").attr("value", d => d.expense.monthly);
+  
+  var links = newModContainers.append("td");
+  links.append("a").attr("href", "javascript:void(0);").attr("onclick", (d,i) => "newExpenseDialog(" + i + ")").text("new expense");
+}
+
+fillModsTable();
+
+refreshInvestment = function(key) {
+	investments.set(key, {
+		name: d3.select("#name" + key).property("value"),
+		start: +d3.select("#start" + key).property("value"),
+		monthly: +d3.select("#monthly" + key).property("value"),
+		interest: +d3.select("#rate" + key).property("value"),
+	});
+	stacked = !stacked;
+	click();
+}
+
+click = function() {
+stacked = !stacked;
+refreshChart();
+}
+
+refreshChart = function() {
+fillPortfolios(end);
+var chart = d3.select(".chart");
+chart.selectAll("*").remove(); // todo fix
+chart
+    .attr("width", width)
+    .attr("height", height);
+
+chart.append("g")
+    .call(d3.axisRight(yScale));
+chart.append("g")
+	.attr("transform", "translate(0,"+(height-100)+")")
+    .call(d3.axisBottom(xScale));
+	
+var lineValuesMap = {};
+lineValuesMap[0] = [];
+portfolios.forEach(function(p) {
+  lineValuesMap[0].push({date: p[0], value: p[1].cash});
+  for (var id in p[1].investments) {
+    if (!(id in lineValuesMap)) {
+	  lineValuesMap[id] = [];
+	}
+    lineValuesMap[id].push({date: p[0], value: p[1].investments[id].start});
+  }
+});
+var lineValues = Object.entries(lineValuesMap);
+// TODO: nice negative values on stacked chart
+if (stacked) {
+  var area = d3.area()
+	  .x(v => xScale(v.date))
+	  .y0(v => yScale(v.prev))
+	  .y1(v => yScale(v.value));
+  var stackedValues = [];
+  for (i = 0; i < lineValues.length; i++) {
+    var current = [];
+    for (j = 0; j < lineValues[i][1].length; j++) {
+	  if (i == 0) {
+	    current.push({date: lineValues[i][1][j].date, value: lineValues[i][1][j].value, prev: 0});
+	  } else {
+	    current.push({date: lineValues[i][1][j].date, value: lineValues[i][1][j].value + stackedValues[i-1][j].value, prev: stackedValues[i-1][j].value});
+	  }
+	}
+	stackedValues.push(current);
+  }
+  var areas = chart.selectAll(".area").data(stackedValues);
+  areas.enter().append("path").datum(d => d).attr("d", area).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]).attr("fill", (d,i) => colors[i]).attr("class", "area");
+  areas.exit().remove();
+} else {
+  var line = d3.line()
+	  .x(v => xScale(v.date))
+	  .y(v => yScale(v.value));
+  var lines = chart.selectAll(".line").data(lineValues);
+  lines.enter().append("path").datum(d => d[1]).attr("d", line).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]);
+  lines.exit().remove();
+}
+}
+
+refreshChart();
+	
+</script>
+
+</body>
+</html>
