@@ -96,7 +96,6 @@
 
 <div class="mods"></div>
 
-<input type="date" id="newModDate">
 <input type="button" id="addNewMod" value="Add new life event" onclick="addNewMod()">
 
 <!--
@@ -588,13 +587,15 @@ distributionSlider = function() {
 }
 
 addNewMod = function() {
-  var dateInputValue = d3.select("#newModDate").node().value.split("-");
-  var y,m,d;
-  [y,m,d] = dateInputValue;
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return;
-  
-  var date = new Date(y,m-1,d);
+  var date;
+  if (mods.length == 0) {
+    date = new Date(start);
+  } else {
+    date = new Date(mods[mods.length-1][0]);
+  }
+  date.setFullYear(date.getFullYear()+1);
   var newMod = [date, {
+    name: "new life event",
     change_income: [],
     change_investment: [],
     new_expense: [],
@@ -629,8 +630,13 @@ fillModsTable = function() {
   modContainers.exit().remove();
   var newModContainers = modContainers.enter().append("div").attr("class", "portfolio");
   var newHeaders = newModContainers.append("div").attr("class", "portfolioHeader");
-  newHeaders.append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
-	  var mod = d3.select(this.parentNode.parentNode).datum();
+  newHeaders.append("div").append("input").attr("type", "text").attr("class", "modName").on("input", function() {
+	var mod = d3.select(ancestor(this, 3)).datum();
+	mod[1].name = d3.select(this).node().value;
+	refresh();
+  });
+  newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
+	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
       var y,m,d;
       [y,m,d] = dateInputValue;
@@ -653,7 +659,7 @@ fillModsTable = function() {
 	  clearPortfoliosAfter(min);
 	  refresh();
     });
-  newHeaders.append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
+  newHeaders.append("div").append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
   var modDetailsContainer = newModContainers.append("div");
   var body = modDetailsContainer.append("div").attr("class", "portfolioBody");
   body.append("div").attr("class", "cashContainer").append("input").attr("type", "text").attr("disabled", "");
@@ -665,6 +671,8 @@ fillModsTable = function() {
   var allModContainers = newModContainers.merge(modContainers);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
+  allHeaders.select(".modName").attr("value", d => d[1].name);
+  allHeaders.select(".modName").property("value", d => d[1].name);
   allHeaders.select(".modDate").attr("value", d => yyyyMmDd(d[0]));
   allHeaders.select(".modDate").property("value", d => yyyyMmDd(d[0]));
   portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
@@ -716,13 +724,13 @@ fillModsTable = function() {
   newChangeIncomeCell.append("div").attr("class", "name");
   newChangeIncomeCell.append("input").attr("data-idx", (d,i) => i)
       .on("input", function() {
-	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].change_income[Number(d3.select(this).attr("data-idx"))].income.monthly = Number(this.value);
+	    mods[Number(d3.select(ancestor(this, 2)).attr("data-idx"))][1].change_income[Number(d3.select(this).attr("data-idx"))].income.monthly = Number(this.value);
 		validPortfoliosEnd = 1; // todo more precise
 		fillModsTable();
 		refreshChart();
 		// todo slider, etc.
 	  });
-  newChangeIncomeCell.merge(changeIncomeCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].incomes[d.id].name;} );
+  newChangeIncomeCell.merge(changeIncomeCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(ancestor(this, 2)).datum()[0])[1].incomes[d.id].name;} );
   newChangeIncomeCell.merge(changeIncomeCells).selectAll("input").attr("value", d => d.income.monthly);
  
   var changeInvestmentCells = allModContainers.selectAll(".changeInvestmentCell").data(d => d[1].change_investment);
@@ -731,13 +739,13 @@ fillModsTable = function() {
   newchangeInvestmentCell.append("div").attr("class", "name");
   newchangeInvestmentCell.append("input").attr("data-idx", (d,i) => i)
       .on("input", function() {
-	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].change_investment[Number(d3.select(this).attr("data-idx"))].investment.monthly = Number(this.value);
+	    mods[Number(d3.select(ancestor(this, 2)).attr("data-idx"))][1].change_investment[Number(d3.select(this).attr("data-idx"))].investment.monthly = Number(this.value);
 		validPortfoliosEnd = 1; // todo more precise
 		fillModsTable();
 		refreshChart();
 		// todo slider, etc.
 	  });
-  newchangeInvestmentCell.merge(changeInvestmentCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].investments[d.id].name;} );
+  newchangeInvestmentCell.merge(changeInvestmentCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(ancestor(this, 2)).datum()[0])[1].investments[d.id].name;} );
   newchangeInvestmentCell.merge(changeInvestmentCells).selectAll("input").attr("value", d => d.investment.monthly);
  
   var newExpenseCells = allModContainers.selectAll(".newExpenseCell").data(d => d[1].new_expense);
@@ -746,13 +754,13 @@ fillModsTable = function() {
   newnewExpenseCell.append("div").attr("class", "name");
   newnewExpenseCell.append("input").attr("data-idx", (d,i) => i)
       .on("input", function() {
-	    mods[Number(d3.select(this.parentNode.parentNode).attr("data-idx"))][1].new_expense[Number(d3.select(this).attr("data-idx"))].expense.monthly = Number(this.value);
+	    mods[Number(d3.select(ancestor(this, 2)).attr("data-idx"))][1].new_expense[Number(d3.select(this).attr("data-idx"))].expense.monthly = Number(this.value);
 		validPortfoliosEnd = 1; // todo more precise
 		fillModsTable();
 		refreshChart();
 		// todo slider, etc.
 	  });
-  newnewExpenseCell.merge(newExpenseCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(this.parentNode.parentNode).datum()[0])[1].expenses[d.id].name;} );
+  newnewExpenseCell.merge(newExpenseCells).selectAll(".name").html(function(d) { return getPortfolio(d3.select(ancestor(this, 2)).datum()[0])[1].expenses[d.id].name;} );
   newnewExpenseCell.merge(newExpenseCells).selectAll("input").attr("value", d => d.expense.monthly);
   
   var links = newModContainers.append("td");
