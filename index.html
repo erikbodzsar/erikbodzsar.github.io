@@ -85,10 +85,10 @@
   <div class="portfolioHeader">Starting portfolio</div>
   <div class="portfolioBody">
     <div class="cashContainer"><input type="text"></div>
-    <div class="incomesContainer"></div>
-    <div class="expensesContainer"></div>
-    <div class="investmentsContainer"></div>
-    <div class="debtsContainer"></div>
+    <div><div class="incomesContainer"></div><div><input type="button" value="new income" class="newIncome" onclick="addNewIncome(this)"></div></div>
+    <div><div class="expensesContainer"></div><div><input type="button" value="new expense" class="newExpense" onclick="addNewExpense(this)"></div></div>
+    <div><div class="investmentsContainer"></div><div><input type="button" value="new investment" class="newInvestment" onclick="addNewInvestment(this)"></div></div>
+    <div><div class="debtsContainer"></div><div><input type="button" value="new debt" class="newDebt" onclick="addNewDebt(this)"></div></div>
   </div>
 </div>
 
@@ -113,10 +113,33 @@
 mouseX = 0;
 mouseY = 0;
 
+nextId = function() {
+  var maxId = 0;
+  var p = portfolios[0][1];
+  var kinds = ["incomes", "expenses", "investments", "debts"];
+  for (var a in kinds) {
+	for (var x in p[kinds[a]]) {
+	  var id = Number(x[0]);
+	  if (id > maxId) maxId = id;
+	}
+  }
+  kinds = ["new_income", "new_expense", "new_investment", "new_debt"];
+  for (var mi in mods) {
+    var m = mods[mi];
+    for (var a in kinds) {
+	  for (var x in m[1][kinds[a]]) {
+	    var id = Number(m[1][kinds[a]][x].id);
+	    if (id > maxId) maxId = id;
+	  }
+	}
+  }
+  return maxId+1;
+}
+
 addExpense = function(i) {
   var addExpenseDiv = d3.select("#addExpense");
   mods[i][1].new_expense.push({
-    id: nextId++,
+    id: nextId(),
 	expense: {
       name: addExpenseDiv.select("#addExpenseName").property("value"),
       monthly: Number(addExpenseDiv.select("#addExpenseMonthly").property("value")),
@@ -129,6 +152,98 @@ addExpense = function(i) {
   validPortfoliosEnd = 1;
   fillModsTable();
   refreshChart();
+}
+
+addNewIncome = function(elem) {
+  portfolios[0][1].incomes[nextId()] = {
+    name: "new income",
+    monthly: 1000,
+    start: 0,
+    interest: 0,
+  };
+  validPortfoliosEnd = 1;
+  refresh();
+}
+
+addNewExpense = function(elem) {
+  portfolios[0][1].expenses[nextId()] = {
+    name: "new expense",
+    monthly: 1000,
+    start: 0,
+    interest: 0,
+  };
+  validPortfoliosEnd = 1;
+  refresh();
+}
+
+addNewInvestment = function(elem) {
+  portfolios[0][1].investments[nextId()] = {
+    name: "new investment",
+    monthly: 0,
+    start: 1000,
+    interest: 0.01/12,
+  };
+  validPortfoliosEnd = 1;
+  refresh();
+}
+
+addNewDebt = function(elem) {
+  portfolios[0][1].debts[nextId()] = {
+    name: "new debt",
+    monthly: 0,
+    start: 1000,
+    interest: 0.01/12,
+  };
+  validPortfoliosEnd = 1;
+  refresh();
+}
+
+addNewIncomeMod = function(elem) {
+  var mod = d3.select(ancestor(elem, 3)).datum();
+  mod[1].new_income.push({id: nextId(), income: {
+    name: "new income",
+    monthly: 1000,
+    start: 0,
+    interest: 0,
+  }});
+  clearPortfoliosAfter(mod[0]);
+  refresh();
+}
+
+addNewExpenseMod = function(elem) {
+  var mod = d3.select(ancestor(elem, 3)).datum();
+  mod[1].new_expense.push({id: nextId(), expense: {
+    name: "new expense",
+    monthly: 1000,
+    start: 0,
+    interest: 0,
+  }});
+  clearPortfoliosAfter(mod[0]);
+  refresh();
+}
+
+addNewInvestmentMod = function(elem) {
+  var mod = d3.select(ancestor(elem, 3)).datum();
+  mod[1].new_investment.push({id: nextId(), investment: {
+    name: "new investment",
+    monthly: 1000,
+    start: 0,
+    interest: 0.01/12,
+  }});
+  clearPortfoliosAfter(mod[0]);
+  refresh();
+}
+
+addNewDebtMod = function(elem) {
+  var mod = d3.select(ancestor(elem, 3)).datum();
+  mod[1].new_debt.push({id: nextId(), debt: {
+    name: "new debt",
+    monthly: 1000,
+    start: 0,
+    interest: 0.01/12,
+  }});
+  clearPortfoliosAfter(mod[0]);
+  refresh();
 }
 
 newExpenseDialog = function(i) {
@@ -230,9 +345,9 @@ d3.select(".chart").on("mousemove", mouseMove);
 colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
 
 investments = {};
-nextId = 1;
+nextIdTmp = 1;
 
-investments[nextId++] = {
+investments[nextIdTmp++] = {
   name: "dummy investment",
   start: 100000.0,
   interest: 0.04/12,
@@ -247,13 +362,13 @@ portfolio = {
   expenses: {},
 };
 
-portfolio.incomes[nextId++] = {
+portfolio.incomes[nextIdTmp++] = {
   name: "dummy income",
   monthly: 5000,
   start: 0,
   interest: 0,
 };
-portfolio.expenses[nextId++] = {
+portfolio.expenses[nextIdTmp++] = {
   name: "dummy expense",
   monthly: 2000,
   start: 0,
@@ -294,25 +409,47 @@ mods.push([new Date(2018, 10, 1), {
 }]);
 */
 
+current_version = 1;
+
 createURLParam = function() {
-  var json = JSON.stringify([portfolios[0],mods]);
+  var json = JSON.stringify([current_version,portfolios[0],mods]);
   return btoa(json);
 }
 createURL = function() {
   return window.location.origin + window.location.pathname + "?data=" + createURLParam();
 }
 const dateFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-function parseDate(key, value) {
+parseDate = function(key, value) {
     if (typeof value === "string" && dateFormat.test(value)) {
         return new Date(value);
     }
     return value;
+}
+parse = function(version, data) {
+  if (version == 0) {
+    var oldPortfolios = data[0];
+	var oldMods = data[1];
+	for (var mod in oldMods) {
+	  mod[1].name = "unnamed life event";
+	}
+	parse(1, [1, oldPortfolios, oldMods]);
+  } else if (version == current_version) {
+    portfolios = data[1];
+	mods = data[2];
+  }
 }
 initFromURLParam = function() {
   var params = new URLSearchParams(window.location.search);
   var encoded = params.get("data");
   if (encoded != null) {
     var data = JSON.parse(atob(encoded), parseDate);
+	var version;
+	if (data.length == 0) {
+	  version = 0;
+	} else {
+	  version = data[0];
+	}
+	parse(version, data);
 	portfolios = [data[0]];
 	mods = data[1];
   }
@@ -329,7 +466,10 @@ applyMod = function(portfolio, mod) {
   mod.change_expense.map(x => Object.assign(portfolio.expenses[x.id], x.expense));
   mod.change_investment.map(x => Object.assign(portfolio.investments[x.id], x.investment));
   mod.change_debt.map(x => Object.assign(portfolio.debts[x.id], x.debt));
-  mod.new_expense.map(x => { portfolio.expenses[x.id] = x.expense });
+  mod.new_expense.map(x => { portfolio.expenses[x.id] = x.expense; portfolio.expenses[x.id].isNew = true; });
+  mod.new_income.map(x => { portfolio.incomes[x.id] = x.income; portfolio.incomes[x.id].isNew = true; });
+  mod.new_investment.map(x => { portfolio.investments[x.id] = x.investment; portfolio.investments[x.id].isNew = true; });
+  mod.new_debt.map(x => { portfolio.debts[x.id] = x.debt; portfolio.debts[x.id].isNew = true; });
 }
 
 // returns overall monthly +/-
@@ -349,11 +489,11 @@ balance = function(portfolio) {
 }
 
 fillNextPortfolio = function(portfolio, nextPortfolio) {
-// TODO!
   var copy = function(x) {
     var c = {};
 	for (var id in x) {
       c[id] = Object.assign({}, x[id]);
+	  c[id].isNew = false;
 	};
 	return c;
   }
@@ -500,12 +640,10 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
   var addProperty = function(newContainers, allContainers, property, enabled) {
     var inputClass = "input-" + property;
     var input = newContainers.append("input")
-	    .on("input", function() { propertyCb(d3.select(ancestor(this, 4)).datum(), d3.select(this.parentNode).attr("data-kind"), d3.select(this.parentNode).attr("data-id"), property, parseProperty(property, this.value)); })
+	    .on("input", function() { propertyCb(d3.select(ancestor(this, 5)).datum(), d3.select(this.parentNode).attr("data-kind"), d3.select(this.parentNode).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
 		.attr("class", inputClass);
-	if (!enabled) {
-	  input.attr("disabled", "");
-	}
+    input.attr("disabled", d => (d[1].isNew || enabled) ? null : "");
 	allContainers.select("." + inputClass).merge(input)
 		.attr("value", d => printProperty(property, d[1][property]));
   };
@@ -598,7 +736,10 @@ addNewMod = function() {
     name: "new life event",
     change_income: [],
     change_investment: [],
+    new_income: [],
     new_expense: [],
+    new_investment: [],
+    new_debt: [],
     change_expense: [],
     change_debt: [],
   }];
@@ -663,10 +804,19 @@ fillModsTable = function() {
   var modDetailsContainer = newModContainers.append("div");
   var body = modDetailsContainer.append("div").attr("class", "portfolioBody");
   body.append("div").attr("class", "cashContainer").append("input").attr("type", "text").attr("disabled", "");
-  body.append("div").attr("class", "incomesContainer");
-  body.append("div").attr("class", "expensesContainer");
-  body.append("div").attr("class", "investmentsContainer");
-  body.append("div").attr("class", "debtsContainer");
+  var c;  // TODO use cloneNode
+  c = body.append("div");
+  c.append("div").attr("class", "incomesContainer");
+  c.append("div").append("input").attr("type", "button").attr("value", "new income").attr("class", "newIncome").attr("onclick", "addNewIncomeMod(this)");
+  c = body.append("div");
+  c.append("div").attr("class", "expensesContainer");
+  c.append("div").append("input").attr("type", "button").attr("value", "new expense").attr("class", "newExpense").attr("onclick", "addNewExpenseMod(this)");
+  c = body.append("div");
+  c.append("div").attr("class", "investmentsContainer");
+  c.append("div").append("input").attr("type", "button").attr("value", "new investment").attr("class", "newInvestment").attr("onclick", "addNewInvestmentMod(this)");
+  c = body.append("div");
+  c.append("div").attr("class", "debtsContainer");
+  c.append("div").append("input").attr("type", "button").attr("value", "new debt").attr("class", "newDebt").attr("onclick", "addNewDebtMod(this)");
   
   var allModContainers = newModContainers.merge(modContainers);
   allModContainers.attr("data-idx", (d,i) => i);
@@ -680,21 +830,32 @@ fillModsTable = function() {
     function(mod, kind, id, property, value) {
 	  var modKind;
 	  var name;
+	  var newModKind;
 	  if (kind == "investments") {
 	    modKind = "change_investment";
+		newModKind = "new_investment";
 		name = "investment";
 	  } else if (kind == "debts") {
 	    modKind = "change_debt";
+		newModKind = "new_debt";
 		name = "debt";
       } else if (kind == "expenses") {
 	    modKind = "change_expense";
+		newModKind = "new_expense";
 		name = "expense";
 	  } else if (kind == "incomes") {
 	    modKind = "change_income";
+		newModKind = "new_income";
 		name = "income";
 	  }
-	  if (mod[1][modKind] === undefined) {
-	    mod[1][modKind] = [];
+	  var changesNewMod = false;
+	  for (var idx in mod[1][newModKind]) {
+	    if (mod[1][newModKind][idx].id == id) {
+		  mod[1][newModKind][idx][name][property] = value;
+	      clearPortfoliosAfter(mod[0]);
+	      refresh();
+		  return;
+		}
 	  }
 	  var found_idx = null;
 	  for (var idx in mod[1][modKind]) {
@@ -714,7 +875,7 @@ fillModsTable = function() {
 	  clearPortfoliosAfter(mod[0]);
 	  refresh();
    });
- 
+
   return;
   // TODO
  
@@ -810,6 +971,7 @@ portfolios.forEach(function(p) {
     lineValuesMap[id].push({date: p[0], value: p[1].investments[id].start});
   }
 });
+// TODO: debts!
 var lineValues = Object.entries(lineValuesMap);
 // TODO: nice negative values on stacked chart
 if (stacked) {
