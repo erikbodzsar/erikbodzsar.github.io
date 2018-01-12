@@ -961,17 +961,33 @@ chart.append("g")
     .call(d3.axisBottom(xScale));
 	
 var lineValuesMap = {};
-lineValuesMap[0] = [];
+var maxId = nextId();
+for (var i = 0; i < maxId; i++) { lineValuesMap[i] = []; }
 portfolios.forEach(function(p) {
   lineValuesMap[0].push({date: p[0], value: p[1].cash});
-  for (var id in p[1].investments) {
-    if (!(id in lineValuesMap)) {
-	  lineValuesMap[id] = [];
+  for (var i = 1; i < maxId; i++) {
+    if (i in p[1].investments) {
+	  lineValuesMap[i].push({date: p[0], value: p[1].investments[i].start});
+	} else {
+	  lineValuesMap[i].push({date: p[0], value: 0});
 	}
-    lineValuesMap[id].push({date: p[0], value: p[1].investments[id].start});
   }
 });
-// TODO: debts!
+var to_delete = [];
+for (var i in lineValuesMap) {
+  var empty = true;
+  for (var j in lineValuesMap[i]) {
+    if (lineValuesMap[i][j].value > 0) {
+	  empty = false;
+	  break;
+	}
+  }
+  if (empty) {
+    to_delete.push(i);
+  }
+}
+to_delete.forEach(i => delete lineValuesMap[i]);
+// TODO: debts!! above
 var lineValues = Object.entries(lineValuesMap);
 // TODO: nice negative values on stacked chart
 if (stacked) {
