@@ -7,7 +7,7 @@
   
   <style>
     body {
-      background-color: white;
+      background-color: #FAFAFA;
     }
 
     h1 {
@@ -21,7 +21,7 @@
     }
 	
 	.portfolioHeader {
-	  background-color: yellow;
+	/*  background-color: yellow; */
 	}
 	
 	.portfolio {
@@ -31,27 +31,91 @@
 	  margin-left: 5px;
 	  margin-right: 5px;
 	  margin-bottom: 5px;
-	  background-color: cornflowerblue;
+	  border-style: solid;
+	  border-width: thin;
+	  background-color: #BBDEFB;
 	}
 	
-	.incomesContainer {
+	.container {
 	  background-color: darkgreen;
 	  padding: 2px;
 	}
 	
+	.outerContainer {
+	  padding-top: 2px;
+	  padding-bottom: 2px;
+	  padding-left: 2px;
+	  padding-right: 2px;
+	  margin: 2px;
+	}
+	
+	.incomesContainer {
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.incomesOuterContainer {
+	  background-color: #4CAF50;
+	}
+	
 	.expensesContainer {
-	  background-color: darkred;
-	  padding: 2px;
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.expensesOuterContainer {
+	  background-color: #E57373;
 	}
 	
 	.investmentsContainer {
-	  background-color: green;
-	  padding: 2px;
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.investmentsOuterContainer {
+	  background-color: #689F38;
 	}
 	
 	.debtsContainer {
-	  background-color: red;
-	  padding: 2px;
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.debtsOuterContainer {
+	  background-color: #F06292;
+	}
+	
+	.incomes {
+	  border-width: thin;
+	  margin: 4px 0px;
+	}
+	
+	.expenses {
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.investments {
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	.debts {
+	  border-width: thin;
+	  margin: 2px;
+	}
+	
+	input[type=text] {
+	}
+	
+	input[type=button] {
+      background-color: #2196F3;
+      border: none;
+      color: white;
+      padding: 2px 2px;
+      text-decoration: none;
+      margin: 2px 2px;
+      cursor: pointer;
 	}
   </style>
 </head>
@@ -85,10 +149,10 @@
   <div class="portfolioHeader">Starting portfolio</div>
   <div class="portfolioBody">
     <div class="cashContainer"><input type="text"></div>
-    <div><div class="incomesContainer"></div><div><input type="button" value="new income" class="newIncome" onclick="addNewIncome(this)"></div></div>
-    <div><div class="expensesContainer"></div><div><input type="button" value="new expense" class="newExpense" onclick="addNewExpense(this)"></div></div>
-    <div><div class="investmentsContainer"></div><div><input type="button" value="new investment" class="newInvestment" onclick="addNewInvestment(this)"></div></div>
-    <div><div class="debtsContainer"></div><div><input type="button" value="new debt" class="newDebt" onclick="addNewDebt(this)"></div></div>
+    <div class="incomesOuterContainer outerContainer"><span>Incomes</span><input type="button" value="[ + ]" class="newIncome" onclick="addNewIncome(this)"><div class="incomesContainer"></div></div>
+    <div class="expensesOuterContainer outerContainer"><span>Expenses</span><input type="button" value="[ + ]" class="newExpense" onclick="addNewExpense(this)"><div class="expensesContainer"></div></div>
+    <div class="investmentsOuterContainer outerContainer"><span>Investments</span><input type="button" value="[ + ]" class="newInvestment" onclick="addNewInvestment(this)"><div class="investmentsContainer"></div></div>
+    <div class="debtsOuterContainer outerContainer"><span>Debts</span><input type="button" value="[ + ]" class="newDebt" onclick="addNewDebt(this)"><div class="debtsContainer"></div></div>
   </div>
 </div>
 
@@ -655,7 +719,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 //    if (Object.keys(portfolio[1][kind]).length == 0) continue;
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newIncomes = incomes.enter().append("div").attr("style", "padding: 2px").attr("class", kind);
+	var newIncomes = incomes.enter().append("div").attr("class", kind);
 	var newForms = newIncomes.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "float:none");
     var allForms = incomes.select("form").merge(newForms);
 	addProperty(newForms, allForms, "name", isInitial);
@@ -669,7 +733,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
  //   if (Object.keys(portfolio[1][kind]).length == 0) continue;
     var currentContainer = container.select("."+kind+"Container");
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newInvestments = investments.enter().append("div").attr("style", "padding: 2px").attr("class", kind);
+	var newInvestments = investments.enter().append("div").attr("class", kind);
 	var newForms = newInvestments.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind);
     var allForms = investments.select("form").merge(newForms);
 	addProperty(newForms, allForms, "name", isInitial);
