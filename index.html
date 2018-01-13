@@ -173,7 +173,6 @@ addNewIncome = function(elem) {
     start: 0,
     interest: 0,
   };
-  console.log("DBG", nextId());
   validPortfoliosEnd = 1;
   refresh();
 }
@@ -437,7 +436,7 @@ parse = function(version, data) {
 	}
 	parse(2, [2, oldPortfolios, oldMods]);
   } else if (version == current_version) {
-    portfolios = data[1];
+    portfolios = [data[1]];
 	mods = data[2];
   }
 }
@@ -453,8 +452,6 @@ initFromURLParam = function() {
 	  version = data[0];
 	}
 	parse(version, data);
-	portfolios = [data[0]];
-	mods = data[1];
   }
 }
 initFromURLParam();
@@ -546,7 +543,6 @@ fillPortfolios = function(until) {
   }
 }
 fillPortfolios(end);
-
 
 getPortfolio = function(date) {
   fillPortfolios(date);
