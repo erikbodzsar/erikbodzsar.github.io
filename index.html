@@ -97,6 +97,7 @@
 <div class="mods"></div>
 
 <input type="button" id="addNewMod" value="Add new life event" onclick="addNewMod()">
+<input type="date" id="changeEndDate" value="2030-01-01" oninput="changeEndDate()">
 
 <!--
 <form name="new_investment" onSubmit="newInvestment()">
@@ -112,6 +113,17 @@
 
 mouseX = 0;
 mouseY = 0;
+
+changeEndDate = function() {
+  var dateInputValue = d3.select("#changeEndDate").node().value.split("-");
+  var y,m,d;
+  [y,m,d] = dateInputValue;
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return;
+  var date = new Date(y,m-1,d);
+  end = date;
+  init();
+  refresh();
+}
 
 nextId = function() {
   var maxId = 0;
@@ -323,13 +335,16 @@ height = 500;
 
 start = new Date(2018, 0, 0);
 end = new Date(2030, 0, 0);
-	
+
+init = function() {
 yScale = d3.scaleLinear()
-        .domain([80000.0, 5000000.0])
-        .range([height-100, 0]);
+      .domain([80000.0, 5000000.0])
+      .range([height-100, 0]);
 xScale = d3.scaleTime()
         .domain([start, end])
         .range([0, width]);
+}
+init();
 
 mouseMove = function() {
   var x = d3.mouse(this)[0]
@@ -386,30 +401,8 @@ getId = function(name, portfolio) {
 }
 
 mods = [];
-/*
-mods.push([new Date(2018, 10, 1), {
-  change_income: [
-  {
-    id: getId("dummy income", portfolios[0][1]),
-    income: {
-      monthly: 100,
-    }
-  }],
-  change_investment: [
-  {
-    id: getId("dummy investment", portfolios[0][1]),
-    investment: {
-      monthly: 0,
-    }
-  },
-  ],
-  new_expense: [],
-  change_expense: [],
-  change_debt: [],
-}]);
-*/
 
-current_version = 1;
+current_version = 2;
 
 createURLParam = function() {
   var json = JSON.stringify([current_version,portfolios[0],mods]);
@@ -433,6 +426,13 @@ parse = function(version, data) {
 	  mod[1].name = "unnamed life event";
 	}
 	parse(1, [1, oldPortfolios, oldMods]);
+  } else if (version == 1) {
+    var oldPortfolios = data[0];
+	var oldMods = data[1];
+	for (var idx in oldMods) {
+	  oldMods[idx][1].disabled = false;
+	}
+	parse(2, [2, oldPortfolios, oldMods]);
   } else if (version == current_version) {
     portfolios = data[1];
 	mods = data[2];
@@ -462,7 +462,7 @@ urlClick = function() {
 }
 
 applyMod = function(portfolio, mod) {
-  if ('disabled' in mod && mod.disabled) return;
+  if (mod.disabled) return;
   mod.change_income.map(x => Object.assign(portfolio.incomes[x.id], x.income));
   mod.change_expense.map(x => Object.assign(portfolio.expenses[x.id], x.expense));
   mod.change_investment.map(x => Object.assign(portfolio.investments[x.id], x.investment));
@@ -735,6 +735,7 @@ addNewMod = function() {
   date.setFullYear(date.getFullYear()+1);
   var newMod = [date, {
     name: "new life event",
+	disabled: false,
     change_income: [],
     change_investment: [],
     new_income: [],
@@ -763,8 +764,7 @@ removeMod = function(idx) {
 }
 
 disableMod = function(idx) {
-  if ('disabled' in mods[idx][1] && mods[idx][1].disabled) mods[idx][1].disabled = false;
-  else mods[idx][1].disabled = true;
+  mods[idx][1].disabled = !mods[idx][1].disabled;
   if (idx > 0) {
     clearPortfoliosAfter(mods[idx-1][0]);
   } else {
@@ -834,7 +834,7 @@ fillModsTable = function() {
   c.append("div").append("input").attr("type", "button").attr("value", "new debt").attr("class", "newDebt").attr("onclick", "addNewDebtMod(this)");
   
   var allModContainers = newModContainers.merge(modContainers);
-  allModContainers.attr("style", (d,i) => ('disabled' in d[1] && d[1].disabled) ? "opacity: 0.5" : null);
+  allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
   allHeaders.select(".modName").attr("value", d => d[1].name);
