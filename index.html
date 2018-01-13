@@ -105,6 +105,10 @@
 	  margin: 2px;
 	}
 	
+	.modName {
+	  font-weight: bold;
+	}
+	
 	input[type=text] {
 	}
 	
@@ -116,6 +120,10 @@
       text-decoration: none;
       margin: 2px 2px;
       cursor: pointer;
+	}
+	
+	#portfolioTemplate {
+	  display: none;
 	}
   </style>
 </head>
@@ -145,8 +153,8 @@
 </div></td>
 </tr></table>
 
-<div id="initial" class="portfolio">
-  <div class="portfolioHeader">Starting portfolio</div>
+<div id="portfolioTemplate" class="portfolio">
+  <div class="portfolioHeader"><span>Starting portfolio</span></div>
   <div class="portfolioBody">
     <div class="cashContainer"><input type="text"></div>
     <div class="incomesOuterContainer outerContainer"><span>Incomes</span><input type="button" value="[ + ]" class="newIncome" onclick="addNewIncome(this)"><div class="incomesContainer"></div></div>
@@ -155,6 +163,8 @@
     <div class="debtsOuterContainer outerContainer"><span>Debts</span><input type="button" value="[ + ]" class="newDebt" onclick="addNewDebt(this)"><div class="debtsContainer"></div></div>
   </div>
 </div>
+
+<div id="initialContainer"></div>
 
 <!-- <svg width="500" height="100"><g class="slider"></g></svg> -->
 
@@ -174,6 +184,11 @@
 -->
 
 <script type="text/javascript">
+
+setUpInitialPortfolio = function() {
+  d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
+}
+setUpInitialPortfolio();
 
 mouseX = 0;
 mouseY = 0;
@@ -846,13 +861,19 @@ yyyyMmDd = function(date) {
 fillModsTable = function() {
   var modContainers = d3.select(".mods").selectAll(".portfolio").data(mods);
   modContainers.exit().remove();
-  var newModContainers = modContainers.enter().append("div").attr("class", "portfolio");
-  var newHeaders = newModContainers.append("div").attr("class", "portfolioHeader");
-  newHeaders.append("div").append("input").attr("type", "text").attr("class", "modName").on("input", function() {
+  
+  var newModContainers = modContainers.enter().append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
+  var newHeaders = newModContainers.select(".portfolioHeader");
+  newHeaders.select("span").remove();
+  var firstHeaderRow = newHeaders.append("div");
+  firstHeaderRow.append("input").attr("type", "text").attr("class", "modName").on("input", function() {
 	var mod = d3.select(ancestor(this, 3)).datum();
 	mod[1].name = d3.select(this).node().value;
 	refresh();
   });
+  // TODO CANT USE INDEX IF THEY ARE REORDERED; NEED TO RESET IT!
+  firstHeaderRow.append("input").attr("type", "checkbox").attr("value", null).attr("onclick", (d,i) => "disableMod("+i+")");
+  firstHeaderRow.append("input").attr("type", "button").attr("value", "[ X ]").attr("onclick", (d,i) => "removeMod("+i+")");
   newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
@@ -877,26 +898,6 @@ fillModsTable = function() {
 	  clearPortfoliosAfter(min);
 	  refresh();
     });
-  var newButtons = newHeaders.append("div");
-  // TODO CANT USE INDEX IF THEY ARE REORDERED; NEED TO RESET IT!
-  newButtons.append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
-  newButtons.append("input").attr("type", "checkbox").attr("value", "Disable").attr("onclick", (d,i) => "disableMod("+i+")");
-  var modDetailsContainer = newModContainers.append("div");
-  var body = modDetailsContainer.append("div").attr("class", "portfolioBody");
-  body.append("div").attr("class", "cashContainer").append("input").attr("type", "text").attr("disabled", "");
-  var c;  // TODO use cloneNode
-  c = body.append("div");
-  c.append("div").attr("class", "incomesContainer");
-  c.append("div").append("input").attr("type", "button").attr("value", "new income").attr("class", "newIncome").attr("onclick", "addNewIncomeMod(this)");
-  c = body.append("div");
-  c.append("div").attr("class", "expensesContainer");
-  c.append("div").append("input").attr("type", "button").attr("value", "new expense").attr("class", "newExpense").attr("onclick", "addNewExpenseMod(this)");
-  c = body.append("div");
-  c.append("div").attr("class", "investmentsContainer");
-  c.append("div").append("input").attr("type", "button").attr("value", "new investment").attr("class", "newInvestment").attr("onclick", "addNewInvestmentMod(this)");
-  c = body.append("div");
-  c.append("div").attr("class", "debtsContainer");
-  c.append("div").append("input").attr("type", "button").attr("value", "new debt").attr("class", "newDebt").attr("onclick", "addNewDebtMod(this)");
   
   var allModContainers = newModContainers.merge(modContainers);
   allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
