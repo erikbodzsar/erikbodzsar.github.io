@@ -1,18 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Financial Life Simulator</title>
   <meta charset = "utf-8">
   <script src="https://d3js.org/d3.v4.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <!--  <script src="d3.v4.min.js"></script> -->
   
   <style>
     body {
-      background-color: #FAFAFA;
+      background-color: #E1F5FE;
+    }
+	
+	* {
+	  font-family: 'Roboto', sans-serif;
+	}
+
+    #header span {
+      color: black;
+      text-align: left;
+	  font-size: 2.5em;
+	  font-weight: bold; 
     }
 
-    h1 {
-      color: white;
-      text-align: center;
+    #share {
+      float: right;
     }
 
     p {
@@ -33,7 +46,7 @@
 	  margin-bottom: 5px;
 	  border-style: solid;
 	  border-width: thin;
-	  background-color: #BBDEFB;
+	  background-color: #03A9F4;
 	}
 	
 	.container {
@@ -42,11 +55,14 @@
 	}
 	
 	.outerContainer {
+	  border-left-style: solid;
+	  border-width: 2px;
+	  background-color: #03A9F4;
 	  padding-top: 2px;
 	  padding-bottom: 2px;
 	  padding-left: 2px;
 	  padding-right: 2px;
-	  margin: 2px;
+	  margin-bottom: 5px;
 	}
 	
 	.incomesContainer {
@@ -55,7 +71,6 @@
 	}
 	
 	.incomesOuterContainer {
-	  background-color: #4CAF50;
 	}
 	
 	.expensesContainer {
@@ -64,7 +79,6 @@
 	}
 	
 	.expensesOuterContainer {
-	  background-color: #E57373;
 	}
 	
 	.investmentsContainer {
@@ -73,7 +87,6 @@
 	}
 	
 	.investmentsOuterContainer {
-	  background-color: #689F38;
 	}
 	
 	.debtsContainer {
@@ -82,7 +95,6 @@
 	}
 	
 	.debtsOuterContainer {
-	  background-color: #F06292;
 	}
 	
 	.incomes {
@@ -113,7 +125,7 @@
 	}
 	
 	input[type=button] {
-      background-color: #2196F3;
+      background-color: #FBC02D;
       border: none;
       color: white;
       padding: 2px 2px;
@@ -125,12 +137,25 @@
 	#portfolioTemplate {
 	  display: none;
 	}
+	
+	.url {
+	}
   </style>
 </head>
 
 <body>
 
-<select id="interestSelect">
+<div id="header">
+<span>Financial life simulator</span>
+<span id="share" style="position: absolute; right: 10px;">
+<span class="shareUrl" style="display: none; font-size: 0.4em; font-weight: normal; float: left;">Link copied!
+<input class="url" type="text" value="url" onfocusout="hideUrl()">
+</span>
+<a href="javascript:urlClick()" style="color: inherit"><i class="material-icons md-dark" style="float: left">link</i></a>
+</span>
+</div>
+
+<select id="interestSelect" style="display: none">
   <option value="yearly">yearly</option>
   <option value="monthly">monthly</option>
 </select>
@@ -143,7 +168,6 @@
 </div>
 -->
 
-<input class="url" type="text" value="url"><input type="button" onclick="urlClick()" value="copy URL">
 
 <table><tr>
 <td><svg class="chart" onclick="click()"></svg></td>
@@ -438,7 +462,8 @@ bodyMouseMove = function() {
 d3.select("body").on("mousemove", bodyMouseMove);
 d3.select(".chart").on("mousemove", mouseMove);
 
-colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
+//colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
+colors = ["#FFE0B2", "#FFB74D", "#FF9800", "#F57C00", "#E65100", "#BF360C"];
 
 investments = {};
 nextIdTmp = 1;
@@ -536,8 +561,13 @@ initFromURLParam = function() {
 initFromURLParam();
 urlClick = function() {
   d3.select(".url").attr("value", createURL());
+  d3.select(".shareUrl").attr("style", "display: inline; font-size: 0.4em; font-weight: normal; float: left;");
+  d3.select(".url").node().focus();
   d3.select(".url").node().select();
   document.execCommand('copy');
+}
+hideUrl = function() {
+  d3.select(".shareUrl").attr("style", "display: none; font-size: 0.4em; font-weight: normal; float: left;");
 }
 
 applyMod = function(portfolio, mod) {
