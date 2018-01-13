@@ -462,6 +462,7 @@ urlClick = function() {
 }
 
 applyMod = function(portfolio, mod) {
+  if ('disabled' in mod && mod.disabled) return;
   mod.change_income.map(x => Object.assign(portfolio.incomes[x.id], x.income));
   mod.change_expense.map(x => Object.assign(portfolio.expenses[x.id], x.expense));
   mod.change_investment.map(x => Object.assign(portfolio.investments[x.id], x.investment));
@@ -761,6 +762,17 @@ removeMod = function(idx) {
   refresh();
 }
 
+disableMod = function(idx) {
+  if ('disabled' in mods[idx][1] && mods[idx][1].disabled) mods[idx][1].disabled = false;
+  else mods[idx][1].disabled = true;
+  if (idx > 0) {
+    clearPortfoliosAfter(mods[idx-1][0]);
+  } else {
+    validPortfoliosEnd = 1;
+  }
+  refresh();
+}
+
 yyyyMmDd = function(date) {
   var pad = x => x < 10 ? ("0" + x) : ("" + x);
   return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
@@ -800,7 +812,10 @@ fillModsTable = function() {
 	  clearPortfoliosAfter(min);
 	  refresh();
     });
-  newHeaders.append("div").append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
+  var newButtons = newHeaders.append("div");
+  // TODO CANT USE INDEX IF THEY ARE REORDERED; NEED TO RESET IT!
+  newButtons.append("input").attr("type", "button").attr("value", "Remove").attr("onclick", (d,i) => "removeMod("+i+")");
+  newButtons.append("input").attr("type", "checkbox").attr("value", "Disable").attr("onclick", (d,i) => "disableMod("+i+")");
   var modDetailsContainer = newModContainers.append("div");
   var body = modDetailsContainer.append("div").attr("class", "portfolioBody");
   body.append("div").attr("class", "cashContainer").append("input").attr("type", "text").attr("disabled", "");
@@ -819,6 +834,7 @@ fillModsTable = function() {
   c.append("div").append("input").attr("type", "button").attr("value", "new debt").attr("class", "newDebt").attr("onclick", "addNewDebtMod(this)");
   
   var allModContainers = newModContainers.merge(modContainers);
+  allModContainers.attr("style", (d,i) => ('disabled' in d[1] && d[1].disabled) ? "opacity: 0.5" : null);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
   allHeaders.select(".modName").attr("value", d => d[1].name);
