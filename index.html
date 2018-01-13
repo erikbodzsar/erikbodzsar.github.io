@@ -131,7 +131,7 @@ nextId = function() {
   var kinds = ["incomes", "expenses", "investments", "debts"];
   for (var a in kinds) {
 	for (var x in p[kinds[a]]) {
-	  var id = Number(x[0]);
+	  var id = Number(x);
 	  if (id > maxId) maxId = id;
 	}
   }
@@ -173,6 +173,7 @@ addNewIncome = function(elem) {
     start: 0,
     interest: 0,
   };
+  console.log("DBG", nextId());
   validPortfoliosEnd = 1;
   refresh();
 }
