@@ -195,6 +195,7 @@ addNewInvestment = function(elem) {
     monthly: 0,
     start: 1000,
     interest: 0.01/12,
+	useAsCash: false,
   };
   validPortfoliosEnd = 1;
   refresh();
@@ -206,6 +207,7 @@ addNewDebt = function(elem) {
     monthly: 0,
     start: 1000,
     interest: 0.01/12,
+	useAsCash: false,
   };
   validPortfoliosEnd = 1;
   refresh();
@@ -428,8 +430,8 @@ parse = function(version, data) {
 	}
 	parse(1, [1, oldPortfolios, oldMods]);
   } else if (version == 1) {
-    var oldPortfolios = data[0];
-	var oldMods = data[1];
+    var oldPortfolios = data[1];
+	var oldMods = data[2];
 	for (var idx in oldMods) {
 	  oldMods[idx][1].disabled = false;
 	}
@@ -477,16 +479,18 @@ applyMod = function(portfolio, mod) {
 // returns overall monthly +/-
 balance = function(portfolio) {
   var ret = 0;
-  ["investments", "expenses"].forEach(function(p) {
-    for (var id in portfolio[p]) {
-	  ret -= portfolio[p][id].monthly;
-	}
-  });
-  ["incomes", "debts"].forEach(function(p) {
-    for (var id in portfolio[p]) {
-	  ret += portfolio[p][id].monthly;
-	}
-  });
+  for (var id in portfolio["investments"]) {
+    ret -= portfolio["investments"][id].monthly;
+  }
+  for (var id in portfolio["expenses"]) {
+    ret -= portfolio["expenses"][id].monthly;
+  }
+  for (var id in portfolio["debts"]) {
+    ret += portfolio["debts"][id].monthly;
+  }
+  for (var id in portfolio["incomes"]) {
+    ret += portfolio["incomes"][id].monthly;
+  }
   return ret;
 }
 
