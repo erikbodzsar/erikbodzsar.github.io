@@ -99,29 +99,42 @@
 	
 	.incomes {
 	  border-width: thin;
-	  margin: 4px 0px;
+	  border-style: solid;
+	  margin: 4px;
+	  padding: 2px;
 	}
 	
 	.expenses {
 	  border-width: thin;
-	  margin: 2px;
+	  border-style: solid;
+	  margin: 4px;
+	  padding: 2px;
 	}
 	
 	.investments {
 	  border-width: thin;
-	  margin: 2px;
+	  border-style: solid;
+	  margin: 4px;
+	  padding: 2px;
 	}
 	
 	.debts {
 	  border-width: thin;
-	  margin: 2px;
+	  border-style: solid;
+	  margin: 4px;
+	  padding: 2px;
 	}
 	
 	.modName {
 	  font-weight: bold;
 	}
 	
-	input[type=text] {
+	input[type=text]:focus {
+	  background-color: #FFF176;
+	}
+	
+	input[type=date]:focus {
+	  background-color: #FFF176;
 	}
 	
 	input[type=button] {
@@ -586,12 +599,14 @@ applyMod = function(portfolio, mod) {
 balance = function(portfolio) {
   var ret = 0;
   for (var id in portfolio["investments"]) {
+    if (portfolio["investments"][id].useAsCash) continue;
     ret -= portfolio["investments"][id].monthly;
   }
   for (var id in portfolio["expenses"]) {
     ret -= portfolio["expenses"][id].monthly;
   }
   for (var id in portfolio["debts"]) {
+    if (portfolio["debts"][id].useAsCash) continue;
     ret += portfolio["debts"][id].monthly;
   }
   for (var id in portfolio["incomes"]) {
@@ -609,22 +624,31 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	};
 	return c;
   }
+  var b = balance(portfolio);
   var next = nextPortfolio;
   Object.assign(next, {
-    cash: portfolio.cash + balance(portfolio),
+    cash: portfolio.cash,
     investments: copy(portfolio.investments),
     debts: copy(portfolio.debts),
     incomes: copy(portfolio.incomes),
     expenses: copy(portfolio.expenses),
   });
   var update = function(x) {
-    x.start = x.start + x.start * x.interest + x.monthly;
+    if ('useAsCash' in x && x.useAsCash) {
+	  x.start = x.start + x.start * x.interest;
+	  var withdrawal = max(min(-b, x.start), 0);
+	  x.start -= withdrawal;
+	  b += withdrawal;
+	} else {
+      x.start = x.start + x.start * x.interest + x.monthly;
+	}
   };
   for (var p in next) {
     for (var id in next[p]) {
 	  update(next[p][id]);
 	}
   }
+  next.cash += b;
   return next;
 }
 
@@ -754,9 +778,16 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	    .on("input", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(this.parentNode).attr("data-kind"), d3.select(this.parentNode).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
 		.attr("class", inputClass);
-    input.attr("disabled", d => (d[1].isNew || enabled) ? null : "");
+    var disabled = function(d) {
+	  // TODO DISPLAY SOMETHING ELSE IN MONTHLY FIELD
+	  if ('useAsCash' in d[1] && d[1].useAsCash && property == 'monthly') return true;
+	  if (d[1].isNew || enabled) return false;
+	  return true;
+	};
+ //   input.attr("disabled", d => disabled(d) ? "" : null);
 	allContainers.select("." + inputClass).merge(input)
-		.attr("value", d => printProperty(property, d[1][property]));
+		.attr("value", d => printProperty(property, d[1][property]))
+		.attr("disabled", d => disabled(d) ? "" : null);
   };
   var incomeList = ["incomes", "expenses"];
   for (var idx in incomeList) {
@@ -788,6 +819,12 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	addProperty(newForms, allForms, "monthly", true);
 	newForms.append("br");
 	addProperty(newForms, allForms, "interest", true);
+
+	// TODO DISABLE MONTHLY IF USEASCASH
+	newForms.append("br");
+	newForms.append("span").text("Cover expenses from this account?");
+	newForms.append("input").attr("type", "checkbox").attr("class", "coverExpenses");
+	allForms.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null).on("click", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(this.parentNode).attr("data-kind"), Number(d3.select(this.parentNode).attr("data-id")), "useAsCash", this.checked); });
   }
 }
 
@@ -897,14 +934,13 @@ fillModsTable = function() {
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select("span").remove();
   var firstHeaderRow = newHeaders.append("div");
-  firstHeaderRow.append("input").attr("type", "text").attr("class", "modName").on("input", function() {
+  firstHeaderRow.append("input").attr("type", "text").attr("class", "modName").attr("style", "vertical-align: top").on("input", function() {
 	var mod = d3.select(ancestor(this, 3)).datum();
 	mod[1].name = d3.select(this).node().value;
 	refresh();
   });
-  // TODO CANT USE INDEX IF THEY ARE REORDERED; NEED TO RESET IT!
-  firstHeaderRow.append("input").attr("type", "checkbox").attr("value", null).attr("onclick", (d,i) => "disableMod("+i+")");
-  firstHeaderRow.append("input").attr("type", "button").attr("value", "[ X ]").attr("onclick", (d,i) => "removeMod("+i+")");
+  firstHeaderRow.append("a").attr("style", "color: inherit; margin: 2px").attr("class", "disableMod").append("i").attr("class", "material-icons md-dark");
+  firstHeaderRow.append("a").attr("style", "color: inherit; margin: 2px").attr("class", "removeMod").append("i").attr("class", "material-icons md-dark").html("delete");
   newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
@@ -934,6 +970,8 @@ fillModsTable = function() {
   allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
+  allHeaders.select(".disableMod").attr("href", (d,i) => "javascript:disableMod("+i+")").select("i").html(d => d[1].disabled ? "visibility_off" : "visibility");
+  allHeaders.select(".removeMod").attr("href", (d,i) => "javascript:removeMod("+i+")");
   allHeaders.select(".modName").attr("value", d => d[1].name);
   allHeaders.select(".modName").property("value", d => d[1].name);
   allHeaders.select(".modDate").attr("value", d => yyyyMmDd(d[0]));
