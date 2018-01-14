@@ -758,7 +758,9 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     if (property == "name") return false;
 	return true;
   };
-  var printProperty = function(property, value) {
+  var printProperty = function(property, d) {
+    if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return "N/A";
+    var value = d[1][property];
     if (property == "interest" && d3.select("#interestSelect").node().value == "yearly") {
 	  value = value * 12;
 	}
@@ -780,13 +782,13 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 		.attr("class", inputClass);
     var disabled = function(d) {
 	  // TODO DISPLAY SOMETHING ELSE IN MONTHLY FIELD
-	  if ('useAsCash' in d[1] && d[1].useAsCash && property == 'monthly') return true;
+	  if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return true;
 	  if (d[1].isNew || enabled) return false;
 	  return true;
 	};
  //   input.attr("disabled", d => disabled(d) ? "" : null);
 	allContainers.select("." + inputClass).merge(input)
-		.attr("value", d => printProperty(property, d[1][property]))
+		.attr("value", d => printProperty(property, d))
 		.attr("disabled", d => disabled(d) ? "" : null);
   };
   var incomeList = ["incomes", "expenses"];
