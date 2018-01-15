@@ -16,6 +16,10 @@
 	* {
 	  font-family: 'Roboto', sans-serif;
 	}
+	
+	#header {
+	  margin-bottom: 2em;
+	}
 
     #header span {
       color: black;
@@ -25,14 +29,26 @@
     }
 
     #share {
-      float: right;
+	  position: absolute;
+	  right: 0px;
+	  top: 0px;
+	  margin: 0.5em;
     }
 
-    p {
-      font-family: verdana;
-      font-size: 20px;
-    }
+	.chartContainer {
+	  padding-left: 1em;
+	  padding-right: 1em;
+	}
+
+	.chart {
+	  width: 100%;
+	  height: 25em;
+	}
 	
+	.axis {
+	  font-size: 0.8em;
+	}
+
 	.portfolioHeader {
 	/*  background-color: yellow; */
 	}
@@ -156,16 +172,17 @@
   </style>
 </head>
 
-<body>
+<body onresize="refresh()">
 
-<div id="header">
+<div id="header" style="">
 <span>Financial life simulator</span>
-<span id="share" style="position: absolute; right: 10px;">
-<span class="shareUrl" style="display: none; font-size: 0.4em; font-weight: normal; float: left;">Link copied!
+</div>
+
+<div id="share" style="">
+<span class="shareUrl" style="display: none; float: left;">Link copied!
 <input class="url" type="text" value="url" onfocusout="hideUrl()">
 </span>
 <a href="javascript:urlClick()" style="color: inherit"><i class="material-icons md-dark" style="float: left">link</i></a>
-</span>
 </div>
 
 <select id="interestSelect" style="display: none">
@@ -181,14 +198,14 @@
 </div>
 -->
 
+<div class="chartContainer">
+<svg class="chart" onclick="click()"></svg>
+</div>
 
-<table><tr>
-<td><svg class="chart" onclick="click()"></svg></td>
-<td><div class="breakdown">
+<div class="breakdown">
 <div class="date"></div>
 <div class="cash"></div>
-</div></td>
-</tr></table>
+</div>
 
 <div id="portfolioTemplate" class="portfolio">
   <div class="portfolioHeader"><span>Starting portfolio</span></div>
@@ -448,19 +465,21 @@ initSlider = function(slider, begin, end, values, callback) {
 }
 
 stacked = true;
-width = 1000;
-height = 500;
 
-start = new Date(2018, 0, 0);
-end = new Date(2030, 0, 0);
+start = new Date(2018, 0, 1);
+end = new Date(2030, 0, 1);
+
+chartXPadding = 10;
+chartYPadding = 10;
 
 init = function() {
+var boundingRect = d3.select(".chart").node().getBoundingClientRect();
 yScale = d3.scaleLinear()
       .domain([80000.0, 5000000.0])
-      .range([height-100, 0]);
+      .range([boundingRect.height-chartYPadding, 0]);
 xScale = d3.scaleTime()
         .domain([start, end])
-        .range([0, width]);
+        .range([chartXPadding, boundingRect.width]);
 }
 init();
 
@@ -574,13 +593,13 @@ initFromURLParam = function() {
 initFromURLParam();
 urlClick = function() {
   d3.select(".url").attr("value", createURL());
-  d3.select(".shareUrl").attr("style", "display: inline; font-size: 0.4em; font-weight: normal; float: left;");
+  d3.select(".shareUrl").attr("style", "display: inline; float: left;");
   d3.select(".url").node().focus();
   d3.select(".url").node().select();
   document.execCommand('copy');
 }
 hideUrl = function() {
-  d3.select(".shareUrl").attr("style", "display: none; font-size: 0.4em; font-weight: normal; float: left;");
+  d3.select(".shareUrl").attr("style", "display: none; float: left;");
 }
 
 applyMod = function(portfolio, mod) {
@@ -1050,16 +1069,7 @@ refreshChart = function() {
 fillPortfolios(end);
 var chart = d3.select(".chart");
 chart.selectAll("*").remove(); // todo fix
-chart
-    .attr("width", width)
-    .attr("height", height);
 
-chart.append("g")
-    .call(d3.axisRight(yScale));
-chart.append("g")
-	.attr("transform", "translate(0,"+(height-100)+")")
-    .call(d3.axisBottom(xScale));
-	
 var lineValuesMap = {};
 var maxId = nextId();
 for (var i = 0; i < maxId; i++) { lineValuesMap[i] = []; }
@@ -1077,7 +1087,7 @@ var to_delete = [];
 for (var i in lineValuesMap) {
   var empty = true;
   for (var j in lineValuesMap[i]) {
-    if (lineValuesMap[i][j].value > 0) {
+    if (lineValuesMap[i][j].value != 0) {
 	  empty = false;
 	  break;
 	}
@@ -1090,24 +1100,40 @@ to_delete.forEach(i => delete lineValuesMap[i]);
 // TODO: debts!! above
 var lineValues = Object.entries(lineValuesMap);
 // TODO: nice negative values on stacked chart
+var minValue = 0.0;
+var maxValue = 0.0;
 if (stacked) {
-  var area = d3.area()
-	  .x(v => xScale(v.date))
-	  .y0(v => yScale(v.prev))
-	  .y1(v => yScale(v.value));
   var stackedValues = [];
   for (var i = 0; i < lineValues.length; i++) {
     var current = [];
     for (var j = 0; j < lineValues[i][1].length; j++) {
 	  if (i == 0) {
-	    current.push({date: lineValues[i][1][j].date, value: lineValues[i][1][j].value, prev: 0});
+	    var v = lineValues[i][1][j].value;
+	    var bottom = min(v, 0);
+		var top = max(v, 0);
+	    current.push({date: lineValues[i][1][j].date, value: top, prev: bottom});
 	  } else {
-	    current.push({date: lineValues[i][1][j].date, value: lineValues[i][1][j].value + stackedValues[i-1][j].value, prev: stackedValues[i-1][j].value});
+	    var v1 = lineValues[i][1][j].value + stackedValues[i-1][j].value;
+		var v2 = stackedValues[i-1][j].value;
+	    var bottom = min(v1, v2);
+		var top = max(v1, v2);
+	    current.push({date: lineValues[i][1][j].date, value: top, prev: bottom});
 	  }
 	}
 	stackedValues.push(current);
   }
+  for (var i = 0; i < stackedValues.length; i++) {
+    for (var j = 0; j < stackedValues[i].length; j++) {
+	  minValue = min(minValue, stackedValues[i][j].prev);
+	  maxValue = max(maxValue, stackedValues[i][j].value);
+	}
+  }
   var areas = chart.selectAll(".area").data(stackedValues);
+  yScale.domain([minValue,maxValue]);
+  var area = d3.area()
+	  .x(v => xScale(v.date))
+	  .y0(v => yScale(v.prev))
+	  .y1(v => yScale(v.value));
   areas.enter().append("path").datum(d => d).attr("d", area).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]).attr("fill", (d,i) => colors[i]).attr("class", "area");
   areas.exit().remove();
 } else {
@@ -1118,6 +1144,32 @@ if (stacked) {
   lines.enter().append("path").datum(d => d[1]).attr("d", line).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]);
   lines.exit().remove();
 }
+var xTicks = [];
+for (var year = start.getFullYear() + 1; year < end.getFullYear(); year++) {
+  xTicks.push(new Date(year, 0, 1));
+}
+var yTickDistance = (maxValue - minValue) / 5;
+var yTickDistanceRounded = Math.pow(10, Math.round(Math.log(yTickDistance) / Math.log(10)));
+var yTickDistanceFinal = yTickDistanceRounded;
+if (Math.abs(yTickDistanceFinal / 2.0 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
+   yTickDistanceFinal = yTickDistanceFinal / 2.0;
+} else if (Math.abs(yTickDistanceFinal * 5 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
+   yTickDistanceFinal = yTickDistanceFinal * 5;
+}
+var yTicks = [];
+for (var v = minValue + yTickDistanceFinal; v < maxValue; v += yTickDistanceFinal) {
+  var t = Math.round(Math.floor(v / yTickDistanceFinal)*yTickDistanceFinal);
+  if (t == 0) continue;
+  yTicks.push(t);
+}
+chart.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate("+chartXPadding+",0)")
+    .call(d3.axisRight(yScale).tickValues(yTicks).tickSizeOuter(0));
+chart.append("g")
+    .attr("class", "axis")
+    .attr("transform", "translate(0,"+(yScale(0))+")")
+    .call(d3.axisTop(xScale).tickValues(xTicks));
 }
 
 refreshChart();
