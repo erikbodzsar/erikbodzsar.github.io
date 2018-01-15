@@ -193,7 +193,7 @@
 <div id="portfolioTemplate" class="portfolio">
   <div class="portfolioHeader"><span>Starting portfolio</span></div>
   <div class="portfolioBody">
-    <div class="cashContainer"><input type="text"></div>
+    <div class="cashContainer">Cash <input type="text" size=9></div>
     <div class="incomesOuterContainer outerContainer"><details><summary><span>Incomes</span></summary><input type="button" value="[ Add new income ]" class="newIncome" onclick="addNewIncome(this)"><div class="incomesContainer"></div></details></div>
     <div class="expensesOuterContainer outerContainer"><details><summary><span>Expenses</span></summary><input type="button" value="[ Add new expense ]" class="newExpense" onclick="addNewExpense(this)"><div class="expensesContainer"></div></details></div>
     <div class="investmentsOuterContainer outerContainer"><details><summary><span>Investments</span></summary><input type="button" value="[ Add new investment ]" class="newInvestment" onclick="addNewInvestment(this)"><div class="investmentsContainer"></div></details></div>
@@ -776,17 +776,17 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 
   var addProperty = function(newContainers, allContainers, property, enabled) {
     var inputClass = "input-" + property;
+	newContainers.append("span").attr("style", "width: 5em; display: inline-block").text(property);
     var input = newContainers.append("input")
 	    .on("input", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(this.parentNode).attr("data-kind"), d3.select(this.parentNode).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
+		.attr("size", property == 'name' ? "20" : "9")
 		.attr("class", inputClass);
     var disabled = function(d) {
-	  // TODO DISPLAY SOMETHING ELSE IN MONTHLY FIELD
 	  if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return true;
 	  if (d[1].isNew || enabled) return false;
 	  return true;
 	};
- //   input.attr("disabled", d => disabled(d) ? "" : null);
 	allContainers.select("." + inputClass).merge(input)
 		.attr("value", d => printProperty(property, d))
 		.attr("disabled", d => disabled(d) ? "" : null);
@@ -794,7 +794,6 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
   var incomeList = ["incomes", "expenses"];
   for (var idx in incomeList) {
     var kind = incomeList[idx];
-//    if (Object.keys(portfolio[1][kind]).length == 0) continue;
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
 	var newIncomes = incomes.enter().append("div").attr("class", kind);
@@ -808,7 +807,6 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
   var investmentList = ["investments", "debts"];
   for (var idx in investmentList) {
     var kind = investmentList[idx];
- //   if (Object.keys(portfolio[1][kind]).length == 0) continue;
     var currentContainer = container.select("."+kind+"Container");
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
 	var newInvestments = investments.enter().append("div").attr("class", kind);
