@@ -172,7 +172,7 @@
   </style>
 </head>
 
-<body onresize="refresh()">
+<body onresize="init(); refresh()">
 
 <div id="header" style="">
 <span>Financial life simulator</span>
@@ -1068,7 +1068,6 @@ refreshChart();
 refreshChart = function() {
 fillPortfolios(end);
 var chart = d3.select(".chart");
-chart.selectAll("*").remove(); // todo fix
 
 var lineValuesMap = {};
 var maxId = nextId();
@@ -1128,20 +1127,22 @@ if (stacked) {
 	  maxValue = max(maxValue, stackedValues[i][j].value);
 	}
   }
-  var areas = chart.selectAll(".area").data(stackedValues);
   yScale.domain([minValue,maxValue]);
+  var areas = chart.selectAll(".area").data(stackedValues);
   var area = d3.area()
 	  .x(v => xScale(v.date))
 	  .y0(v => yScale(v.prev))
 	  .y1(v => yScale(v.value));
-  areas.enter().append("path").datum(d => d).attr("d", area).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]).attr("fill", (d,i) => colors[i]).attr("class", "area");
+  var newAreas = areas.enter().append("path").attr("class", "area").attr("fill", "none").attr("stroke-width", 1);
+  var allAreas = newAreas.merge(areas);
+  allAreas.attr("d", area).attr("stroke", (d,i) => colors[i]).attr("fill", (d,i) => colors[i]);
   areas.exit().remove();
 } else {
   var line = d3.line()
 	  .x(v => xScale(v.date))
 	  .y(v => yScale(v.value));
   var lines = chart.selectAll(".line").data(lineValues);
-  lines.enter().append("path").datum(d => d[1]).attr("d", line).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]);
+  lines.enter().append("path").attr("d", line).attr("fill", "none").attr("stroke-width", 1).attr("stroke", (d,i) => colors[i]);
   lines.exit().remove();
 }
 var xTicks = [];
@@ -1162,6 +1163,7 @@ for (var v = minValue + yTickDistanceFinal; v < maxValue; v += yTickDistanceFina
   if (t == 0) continue;
   yTicks.push(t);
 }
+chart.selectAll(".axis").remove();
 chart.append("g")
     .attr("class", "axis")
     .attr("transform", "translate("+chartXPadding+",0)")
