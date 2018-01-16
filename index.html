@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+<!--
+TODO:
+ remove investments etc.
+ collapsed investment etc.
+ one-time deposit / withdrawal
+ better breakdown:
+  on click
+  on hover
+-->
 <html>
 <head>
   <title>Financial Life Simulator</title>
@@ -238,6 +247,9 @@
 -->
 
 <script type="text/javascript">
+
+max = function(a,b) { return a > b ? a : b; }
+min = function(a,b) { return a < b ? a : b; }
 
 setUpInitialPortfolio = function() {
   d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
@@ -619,14 +631,18 @@ balance = function(portfolio) {
   var ret = 0;
   for (var id in portfolio["investments"]) {
     if (portfolio["investments"][id].useAsCash) continue;
-    ret -= portfolio["investments"][id].monthly;
+	var m = portfolio["investments"][id].monthly;
+	if (m < 0 && -m > portfolio["investments"][id].start) m = -portfolio["investments"][id].start;
+    ret -= m;	
   }
   for (var id in portfolio["expenses"]) {
     ret -= portfolio["expenses"][id].monthly;
   }
   for (var id in portfolio["debts"]) {
     if (portfolio["debts"][id].useAsCash) continue;
-    ret += portfolio["debts"][id].monthly;
+	var m = portfolio["debts"][id].monthly;
+	if (m < 0 && -m > portfolio["debts"][id].start) m = -portfolio["debts"][id].start;
+    ret -= m;	
   }
   for (var id in portfolio["incomes"]) {
     ret += portfolio["incomes"][id].monthly;
@@ -659,7 +675,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	  x.start -= withdrawal;
 	  b += withdrawal;
 	} else {
-      x.start = x.start + x.start * x.interest + x.monthly;
+      x.start = max(0, x.start + x.start * x.interest + x.monthly);
 	}
   };
   for (var p in next) {
@@ -848,9 +864,6 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 }
 
 fillInitialTable();
-
-max = function(a,b) { return a > b ? a : b; }
-min = function(a,b) { return a < b ? a : b; }
 
 getTotalIncome = function(portfolio) {
   var totalIncome = 0;
