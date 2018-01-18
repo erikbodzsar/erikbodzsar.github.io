@@ -181,7 +181,7 @@ TODO:
 <body onresize="init(); refresh()">
 
 <div class="mdl-layout mdl-js-layout">
-  <header class="mdl-layout__header mdl-layout__header--scroll">
+  <header class="mdl-layout__header mdl-layout__fixed-header mdl-layout__header--scroll">
     <div class="mdl-layout__header-row">
       <!-- Title -->
       <span class="mdl-layout-title">Financial life simulator</span>
@@ -211,7 +211,7 @@ Copy shareable link
 
 
 <div class="mdl-grid" id="portfolioGrid">
-  <div class="mdl-cell mdl-cell--3-col" id="initialContainer"></div>
+  <div class="mdl-cell mdl-cell--4-col" id="initialContainer"></div>
 </div>
 
 
@@ -999,7 +999,7 @@ yyyyMmDd = function(date) {
 fillModsTable = function() {
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").select(".portfolio").data(mods);
   modContainers.exit().remove();
-  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
+  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--4-col modPortfolio").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select("span").remove();
   var firstHeaderRow = newHeaders.append("div");
