@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
 TODO:
- mods on chart
- thing added in mod: name shouldn't be disabled!
  better breakdown:
   on click
   on hover
+ mods on chart
+ thing added in mod: name shouldn't be disabled!
+ fix date modifications: mod reordering!
  remove investments etc.
  collapsed investment etc.
  one-time deposit / withdrawal
@@ -293,7 +294,7 @@ Copy shareable link
   </div>
   <div class="portfolioBody">
     <div class="cashContainer">
-	  <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+	  <div class="mdl-textfield">
         <input class="mdl-textfield__input" type="text" id="initialCash">
         <label class="mdl-textfield__label" for="initialCash">Cash</label>
       </div>
@@ -324,6 +325,7 @@ roundToCents = function(x) { return Math.floor(x*100)/100.0; }
 
 setUpInitialPortfolio = function() {
   d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
+  d3.select("#initial").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
 }
 setUpInitialPortfolio();
 
@@ -1042,7 +1044,7 @@ fillModsTable = function() {
   var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
   newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i).attr("value", "0");
   newModContainers.select(".cashContainer").select("label").attr("for", (d,i) => "initialCash" + i);
-  newModContainers.select(".cashContainer").select(".mdl-textfield").nodes().forEach(x => componentHandler.upgradeElement(x));
+  newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => { componentHandler.upgradeElement(x); });
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select("span").remove();
   var firstHeaderRow = newHeaders.append("div");
