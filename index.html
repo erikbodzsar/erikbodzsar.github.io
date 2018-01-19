@@ -884,12 +884,10 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 
   var addProperty = function(newContainers, allContainers, property, enabled) {
     var inputClass = "input-" + property;
-	
-	//newContainers.append("span").attr("style", "width: 5em; display: inline-block").text(property);
     var inputDiv = newContainers.append("div").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
 	var idFn = function(d) { return property + d[0]; };
     var input = inputDiv.append("input")
-	    .on("input", function() { propertyCb(d3.select(ancestor(this, 7)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id"), property, parseProperty(property, this.value)); })
+	    .on("input", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
 		.attr("id", idFn)
 		.attr("size", property == 'name' ? "20" : "9")
@@ -913,12 +911,11 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = incomeList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newIncomes = incomes.enter().append("div").attr("class", kind);
-	var newForms = newIncomes.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "float:none");
-    var allForms = incomes.select("form").merge(newForms);
-	addProperty(newForms, allForms, "name", isInitial);
-	newForms.append("br");
-	addProperty(newForms, allForms, "monthly", true);
+	var newIncomes = incomes.enter().append("div").attr("class", kind).attr("data-id", d => d[0]).attr("data-kind", () => kind);
+    var allIncomes = newIncomes.merge(incomes);
+	addProperty(newIncomes, allIncomes, "name", isInitial);
+	newIncomes.append("br");
+	addProperty(newIncomes, allIncomes, "monthly", true);
   }
   
   var investmentList = ["investments", "debts"];
@@ -926,22 +923,21 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = investmentList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newInvestments = investments.enter().append("div").attr("class", kind);
-	var newForms = newInvestments.append("form").attr("data-id", d => d[0]).attr("data-kind", () => kind);
-    var allForms = investments.select("form").merge(newForms);
-	addProperty(newForms, allForms, "name", isInitial);
-	newForms.append("br");
-	addProperty(newForms, allForms, "start", isInitial);
-	newForms.append("br");
-	addProperty(newForms, allForms, "monthly", true);
-	newForms.append("br");
-	addProperty(newForms, allForms, "interest", true);
+	var newInvestments = investments.enter().append("div").attr("class", kind).attr("data-id", d => d[0]).attr("data-kind", () => kind);
+    var allInvestments = newInvestments.merge(investments);
+	addProperty(newInvestments, allInvestments, "name", isInitial);
+	newInvestments.append("br");
+	addProperty(newInvestments, allInvestments, "start", isInitial);
+	newInvestments.append("br");
+	addProperty(newInvestments, allInvestments, "monthly", true);
+	newInvestments.append("br");
+	addProperty(newInvestments, allInvestments, "interest", true);
 
 	// TODO DISABLE MONTHLY IF USEASCASH
-	newForms.append("br");
-	newForms.append("span").text("Cover expenses from this account?");
-	newForms.append("input").attr("type", "checkbox").attr("class", "coverExpenses");
-	allForms.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null).on("click", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(this.parentNode).attr("data-kind"), Number(d3.select(this.parentNode).attr("data-id")), "useAsCash", this.checked); });
+	newInvestments.append("br");
+	newInvestments.append("span").text("Cover expenses from this account?");
+	newInvestments.append("input").attr("type", "checkbox").attr("class", "coverExpenses");
+	allInvestments.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null).on("click", function() { propertyCb(d3.select(ancestor(this, 5)).datum(), d3.select(this.parentNode).attr("data-kind"), Number(d3.select(this.parentNode).attr("data-id")), "useAsCash", this.checked); });
   }
 }
 
