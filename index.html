@@ -1040,8 +1040,9 @@ fillModsTable = function() {
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").select(".portfolio").data(mods);
   modContainers.exit().remove();
   var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
-  newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i);
+  newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i).attr("value", "0");
   newModContainers.select(".cashContainer").select("label").attr("for", (d,i) => "initialCash" + i);
+  newModContainers.select(".cashContainer").select(".mdl-textfield").nodes().forEach(x => componentHandler.upgradeElement(x));
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select("span").remove();
   var firstHeaderRow = newHeaders.append("div");
