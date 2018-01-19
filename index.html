@@ -255,7 +255,7 @@ Copy shareable link
 
 
 <div class="mdl-grid" id="portfolioGrid">
-  <div class="mdl-cell mdl-cell--4-col" id="initialContainer"></div>
+  <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet  mdl-cell--6-col-phone" id="initialContainer"></div>
 </div>
 
 
@@ -882,12 +882,13 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	return value;
   };
 
-  var addProperty = function(newContainers, allContainers, property, enabled) {
+  var addProperty = function(newContainers, allContainers, property, enabled, cols, colsTablet, colsPhone) {
     var inputClass = "input-" + property;
-    var inputDiv = newContainers.append("div").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
+	var gridDiv = newContainers.append("div").attr("class", "mdl-cell mdl-cell--" + cols + "-col " + "mdl-cell--" + colsTablet + "-col-tablet mdl-cell--" + colsPhone + "-col-phone");
+    var inputDiv = gridDiv.append("div").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
 	var idFn = function(d) { return property + d[0]; };
     var input = inputDiv.append("input")
-	    .on("input", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id"), property, parseProperty(property, this.value)); })
+	    .on("input", function() { propertyCb(d3.select(ancestor(this, 7)).datum(), d3.select(ancestor(this,3)).attr("data-kind"), d3.select(ancestor(this,3)).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
 		.attr("id", idFn)
 		.attr("size", property == 'name' ? "20" : "9")
@@ -911,11 +912,11 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = incomeList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newIncomes = incomes.enter().append("div").attr("class", kind).attr("data-id", d => d[0]).attr("data-kind", () => kind);
+	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
     var allIncomes = newIncomes.merge(incomes);
-	addProperty(newIncomes, allIncomes, "name", isInitial);
+	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	newIncomes.append("br");
-	addProperty(newIncomes, allIncomes, "monthly", true);
+	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
   }
   
   var investmentList = ["investments", "debts"];
@@ -923,15 +924,15 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = investmentList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newInvestments = investments.enter().append("div").attr("class", kind).attr("data-id", d => d[0]).attr("data-kind", () => kind);
+	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
     var allInvestments = newInvestments.merge(investments);
-	addProperty(newInvestments, allInvestments, "name", isInitial);
+	addProperty(newInvestments, allInvestments, "name", isInitial, 6, 4, 2);
 	newInvestments.append("br");
-	addProperty(newInvestments, allInvestments, "start", isInitial);
+	addProperty(newInvestments, allInvestments, "start", isInitial, 6, 4, 2);
 	newInvestments.append("br");
-	addProperty(newInvestments, allInvestments, "monthly", true);
+	addProperty(newInvestments, allInvestments, "monthly", true, 6, 4, 2);
 	newInvestments.append("br");
-	addProperty(newInvestments, allInvestments, "interest", true);
+	addProperty(newInvestments, allInvestments, "interest", true, 6, 4, 2);
 
 	// TODO DISABLE MONTHLY IF USEASCASH
 	newInvestments.append("br");
@@ -1039,7 +1040,7 @@ yyyyMmDd = function(date) {
 fillModsTable = function() {
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").select(".portfolio").data(mods);
   modContainers.exit().remove();
-  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--4-col modPortfolio").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
+  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select("span").remove();
   var firstHeaderRow = newHeaders.append("div");
