@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <!--
 TODO:
+ mods on chart
+ better breakdown:
+  on click
+  on hover
  remove investments etc.
  collapsed investment etc.
  one-time deposit / withdrawal
- better breakdown:
-  on click
-  on 
   
  use snackbar for link copy?
 -->
@@ -213,9 +214,6 @@ Copy shareable link
   </header>
   <main class="mdl-layout__content">
     <div class="page-content">
-
-		
-
 
 <div class="chartContainer">
 <svg class="chart"></svg>
@@ -886,16 +884,14 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var inputClass = "input-" + property;
 	var gridDiv = newContainers.append("div").attr("class", "mdl-cell mdl-cell--" + cols + "-col " + "mdl-cell--" + colsTablet + "-col-tablet mdl-cell--" + colsPhone + "-col-phone");
     var inputDiv = gridDiv.append("div").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
-	var idFn = function(d) { return property + d[0]; };
+	var idFn = function(d) { return property + "-" + d[0] + "-" + d3.select(ancestor(this, 8)).attr("data-idx"); };
     var input = inputDiv.append("input")
 	    .on("input", function() { propertyCb(d3.select(ancestor(this, 7)).datum(), d3.select(ancestor(this,3)).attr("data-kind"), d3.select(ancestor(this,3)).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
 		.attr("id", idFn)
 		.attr("size", property == 'name' ? "20" : "9")
 		.attr("class", inputClass + " mdl-textfield__input");
-	input.nodes().forEach(x => componentHandler.upgradeElement(x) );
     inputDiv.append("label").attr("class", "mdl-textfield__label").attr("for", idFn).text(property).nodes().forEach(x => componentHandler.upgradeElement(x));
-	// TODO UPGRADE!?   newHeaders.selectAll("button").nodes().forEach(x => componentHandler.upgradeElement(x));
 
     var disabled = function(d) {
 	  if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return true;
@@ -905,7 +901,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	allContainers.select("." + inputClass).merge(input)
 		.attr("value", d => printProperty(property, d))
 		.attr("disabled", d => disabled(d) ? "" : null);
-	inputDiv.nodes().forEach(x => componentHandler.upgradeElement(x));
+	inputDiv.nodes().forEach(x => componentHandler.upgradeElement(x) );
   };
   var incomeList = ["incomes", "expenses"];
   for (var idx in incomeList) {
@@ -915,7 +911,6 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
     var allIncomes = newIncomes.merge(incomes);
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
-	newIncomes.append("br");
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
   }
   
@@ -927,18 +922,21 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
     var allInvestments = newInvestments.merge(investments);
 	addProperty(newInvestments, allInvestments, "name", isInitial, 6, 4, 2);
-	newInvestments.append("br");
 	addProperty(newInvestments, allInvestments, "start", isInitial, 6, 4, 2);
-	newInvestments.append("br");
 	addProperty(newInvestments, allInvestments, "monthly", true, 6, 4, 2);
-	newInvestments.append("br");
 	addProperty(newInvestments, allInvestments, "interest", true, 6, 4, 2);
 
-	// TODO DISABLE MONTHLY IF USEASCASH
-	newInvestments.append("br");
-	newInvestments.append("span").text("Cover expenses from this account?");
-	newInvestments.append("input").attr("type", "checkbox").attr("class", "coverExpenses");
-	allInvestments.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null).on("click", function() { propertyCb(d3.select(ancestor(this, 5)).datum(), d3.select(this.parentNode).attr("data-kind"), Number(d3.select(this.parentNode).attr("data-id")), "useAsCash", this.checked); });
+	var idFn1 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 6)).attr("data-idx"); };
+	var idFn2 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 7)).attr("data-idx"); };
+    var newCoverExpenses = newInvestments.append("label").attr("class", "mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect").attr("for", idFn1);
+	newCoverExpenses.append("input")
+	    .attr("type", "checkbox")
+		.attr("id", idFn2)
+		.attr("class", "mdl-checkbox__input coverExpenses")
+		.on("click", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), Number(d3.select(ancestor(this,2)).attr("data-id")), "useAsCash", this.checked); });
+	newCoverExpenses.append("span").attr("class", "mdl-checkbox__label").text("Cover expenses from this account?");
+	newCoverExpenses.nodes().forEach(x => componentHandler.upgradeElement(x));
+	allInvestments.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null);
   }
 }
 
