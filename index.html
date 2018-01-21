@@ -2,11 +2,16 @@
 <!--
 TODO:
  total and +/- on summaries!
+ fix mod remove button placement
+ optimize rendering for long timeframes
+ undo mods!
+ clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
+ cash out investments etc.
  chart overlay going off the chart on left
+ store state in cookie
  too many x ticks on chart
  externally sourced investment contribs (e.g. 401k) to get rid of placeholders
  fix date modifications: mod reordering!!!
- remove investments etc.
  collapsed investment etc.?
  one-time deposit / withdrawal
   
@@ -892,14 +897,40 @@ refresh = function () {
   fillModsTable();
 };
 
+removeModsForId = function(id) {
+  var modKinds = ["change_income", "change_expense", "change_investment", "change_debt"];
+  for (var i = 0; i < mods.length; i++) {
+    for (var j = 0; j < modKinds.length; j++) {
+	  var to_remove = [];
+      for (var k = 0; k < mods[i][1][modKinds[j]].length; k++) {
+  	    if (mods[i][1][modKinds[j]][k].id == id) {
+		  to_remove.push(k);
+  	    }
+      }
+      for (var k = to_remove.length - 1; k >= 0; k--) {	  
+	     mods[i][1][modKinds[j]].splice(to_remove[k], 1);
+      }
+    }
+  }
+}
+
 fillInitialTable = function() {
   var initialPortfolio = d3.select("#initial").select(".portfolioBody");
   initialPortfolio.datum(portfolios[0]);
-  portfolioTable(initialPortfolio, x => x, true, function(data, kind, id, property, value) {
-    data[1][kind][id][property] = value;
-    validPortfoliosEnd = 1;
-	refresh();
-  });
+  portfolioTable(initialPortfolio, x => x, true,
+      function(data, kind, id, property, value) {
+        data[1][kind][id][property] = value;
+        validPortfoliosEnd = 1;
+    	refresh();
+      },
+	  function(data, kind, id) {
+	    if (!confirm("Remove " + data[1][kind][id].name + "?")) return;
+		delete data[1][kind][id];
+		removeModsForId(id);
+        validPortfoliosEnd = 1;
+		refresh();
+	  }
+  );
 }
 
 d3.select("#interestSelect").on("input", function() { refresh(); });
@@ -909,14 +940,14 @@ ancestor = function(node, n) {
   return ancestor(node.parentNode, n-1);
 }
 
-portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
+portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, deleteCb) {
   var cashContainer = container.select(".cashContainer");
   var cash = cashContainer.select("input");
   cash.on("input", function() { getPortfolioFn(d3.select(this).datum())[1].cash = Number(this.value); validPortfoliosEnd = 1; refresh(); });
   if (!isInitial) {
     cash.attr("disabled", "");
   }
-  cash.attr("value", d => return getPortfolioFn(d)[1].cash);
+  cash.attr("value", d => getPortfolioFn(d)[1].cash);
   cash.property("value", d => getPortfolioFn(d)[1].cash);
   
   var isNumeric = function(property) {
@@ -941,7 +972,8 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 
   var addProperty = function(newContainers, allContainers, property, enabled, cols, colsTablet, colsPhone) {
     var inputClass = "input-" + property;
-	var gridDiv = newContainers.append("div").attr("class", "mdl-cell mdl-cell--" + cols + "-col " + "mdl-cell--" + colsTablet + "-col-tablet mdl-cell--" + colsPhone + "-col-phone");
+	var gridDiv = newContainers.append("div")
+	    .attr("class", "mdl-cell mdl-cell--" + cols + "-col " + "mdl-cell--" + colsTablet + "-col-tablet mdl-cell--" + colsPhone + "-col-phone");
     var inputDiv = gridDiv.append("div").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
 	var idFn = function(d) { return property + "-" + d[0] + "-" + d3.select(ancestor(this, 8)).attr("data-idx"); };
     var input = inputDiv.append("input")
@@ -967,7 +999,19 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = incomeList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
+	incomes.exit().remove();
+	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "position: relative");
+	newIncomes.append("button")
+	    .attr("style", function(d) {
+		  var display;
+		  if (isInitial || ('isNew' in d[1] && d[1].isNew)) display = "";
+		  else display = "; display: none";
+		  return "position: absolute; top: 2px; right: 2px; z-index: 2; transform: scale(0.8)" + display;
+		})
+		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
+		.on("click", function() { deleteCb(d3.select(ancestor(this, 5)).datum(), d3.select(ancestor(this,1)).attr("data-kind"), d3.select(ancestor(this,1)).attr("data-id")); })
+		.append("i").attr("class", "material-icons").html("delete");
+    newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
     var allIncomes = newIncomes.merge(incomes);
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
@@ -978,7 +1022,19 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
     var kind = investmentList[idx];
     var currentContainer = container.select("."+kind+"Container");
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
-	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind);
+	investments.exit().remove();
+	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "position: relative");
+	newInvestments.append("button")
+	    .attr("style", function(d) {
+		  var display;
+		  if (isInitial || ('isNew' in d[1] && d[1].isNew)) display = "";
+		  else display = "; display: none";
+		  return "position: absolute; top: 2px; right: 2px; z-index: 2; transform: scale(0.8)" + display;
+		})
+		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
+		.on("click", function() { deleteCb(d3.select(ancestor(this, 5)).datum(), d3.select(ancestor(this,1)).attr("data-kind"), d3.select(ancestor(this,1)).attr("data-id")); })
+		.append("i").attr("class", "material-icons").html("delete");
+    newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
     var allInvestments = newInvestments.merge(investments);
 	addProperty(newInvestments, allInvestments, "name", isInitial, 6, 4, 2);
 	addProperty(newInvestments, allInvestments, "start", isInitial, 6, 4, 2);
@@ -995,7 +1051,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
 		.on("click", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), Number(d3.select(ancestor(this,2)).attr("data-id")), "useAsCash", this.checked); });
 	newCoverExpenses.append("span").attr("class", "mdl-checkbox__label").text("Cover expenses from this account?");
 	newCoverExpenses.nodes().forEach(x => componentHandler.upgradeElement(x));
-	allInvestments.select(".coverExpenses").attr("checked", d => d[1].useAsCash ? "" : null);
+	allInvestments.select(".coverExpenses").attr("checked", function(d) { d[1].useAsCash ? this.parentNode.MaterialCheckbox.check() : this.parentNode.MaterialCheckbox.uncheck(); return d[1].useAsCash ? "" : null; });
   }
 }
 
@@ -1204,7 +1260,37 @@ fillModsTable = function() {
 	  mod[1][modKind][found_idx][name][property] = value
 	  clearPortfoliosAfter(mod[0]);
 	  refresh();
-   });
+    },
+    function(mod, kind, id) {
+	  var name;
+	  var newModKind;
+	  if (kind == "investments") {
+		newModKind = "new_investment";
+		name = "investment";
+	  } else if (kind == "debts") {
+		newModKind = "new_debt";
+		name = "debt";
+      } else if (kind == "expenses") {
+		newModKind = "new_expense";
+		name = "expense";
+	  } else if (kind == "incomes") {
+		newModKind = "new_income";
+		name = "income";
+	  }
+	  var found_idx = null;
+ 	  for (var idx in mod[1][newModKind]) {
+	    if (mod[1][newModKind][idx].id == id) {
+		  found_idx = idx;
+		  break;
+		}
+	  }
+	  if (found_idx == null) { console.log("Couldn't find mod with id " + id); return; }
+	  if (!confirm("Remove " + mod[1][newModKind][found_idx][name].name + "?")) return;
+      mod[1][newModKind].splice(found_idx, 1);
+	  removeModsForId(id);
+	  clearPortfoliosAfter(mod[0]);
+	  refresh();
+  });
    
    var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
    chartMods.exit().remove();
