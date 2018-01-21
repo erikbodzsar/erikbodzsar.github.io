@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
 TODO:
- better breakdown:
-  on click
-  on hover
- mods on chart
+ total and +/- on summaries!
+ chart overlay going off the chart on left
+ too many x ticks on chart
+ externally sourced investment contribs (e.g. 401k) to get rid of placeholders
  thing added in mod: name shouldn't be disabled!
- fix date modifications: mod reordering!
+ fix date modifications: mod reordering!!!
  remove investments etc.
- collapsed investment etc.
+ collapsed investment etc.?
  one-time deposit / withdrawal
   
  use snackbar for link copy?
@@ -50,6 +50,11 @@ TODO:
 	}
 	
 	#mouseTimeLine {
+	  stroke:#000000;
+	  stroke-width:2;
+	}
+	
+	.modLine {
 	  stroke:#000000;
 	  stroke-width:2;
 	}
@@ -230,8 +235,12 @@ Copy shareable link
 <g id="mainChart"></g>
 <g id="chartOverlays">
 <line x1="0" y1="0" x2="200" y2="200" style="display:none" id="mouseTimeLine"></line>
-<text x="0" y="0" style="display:none" id="mouseBreakdown"></text>
+<text x="0" y="0" style="display:none" id="mouseBreakdown">
+<tspan id="mouseBreakdownDate" x="0" dy="0"></tspan>
+<tspan id="mouseBreakdownTotal" x="0" dy="1.4em"></tspan>
+</text>
 </g>
+<g id="chartMods"></g>
 </svg>
 </div>
 
@@ -600,7 +609,6 @@ formatTotal = function(t) {
   for (var idx = start; idx < t.length; idx += 3) {
     ret = ret + "," + t.slice(idx, idx+3);
   }
-  console.log(t);
   return ret;
 };
 mouseMove = function() {
@@ -614,16 +622,12 @@ mouseMove = function() {
       .attr("y1", yScale.range()[1])
 	  .attr("style", "");
   d3.select("#chart").select("#mouseBreakdown")
-      .attr("x", x+5)
-      .attr("y", 50)
-	  .attr("style", "")
-	  .text("Total: " + formatTotal(total(getPortfolio(time)[1])));
-//  fillBreakdown(xScale.invert(x))
-};
-mouseLeave = function() {
-  d3.select("#chart").select("#mouseTimeLine").style("display:none");
-  d3.select("#chart").select("#mouseBreakdown").style("display:none");
+      .attr("transform", "translate("+(x+5)+", 50)")
+	  .attr("style", "");
+    d3.select("#chart").select("#mouseBreakdown").select("#mouseBreakdownDate").text(dateToString(time));
+    d3.select("#chart").select("#mouseBreakdown").select("#mouseBreakdownTotal").text("Total: " + formatTotal(total(getPortfolio(time)[1])));
 
+//  fillBreakdown(xScale.invert(x))
 };
 bodyMouseMove = function() {
   mouseX = d3.mouse(this)[0];
@@ -631,7 +635,6 @@ bodyMouseMove = function() {
 }
 d3.select("body").on("mousemove", bodyMouseMove);
 d3.select("#chart").on("mousemove", mouseMove);
-d3.select("#chart").on("mouseleave", mouseLeave);
 
 //colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
 colors = ["#FFE0B2", "#FFB74D", "#FF9800", "#F57C00", "#E65100", "#BF360C"];
@@ -1201,6 +1204,20 @@ fillModsTable = function() {
 	  clearPortfoliosAfter(mod[0]);
 	  refresh();
    });
+   
+   var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
+   chartMods.exit().remove();
+   var newChartMods = chartMods.enter().append("g").attr("class", "chartMod");
+   yAdj = function(m, i) {
+     var adj = -(i%3+1)*2;
+	 return adj + "em";
+   };
+   newChartMods.append("line").attr("x1", 0).attr("x2", 0).attr("y1", 0).attr("y2", yAdj).attr("class", "modLine");
+   newChartMods.append("text").attr("x", 0).attr("y", yAdj);
+   
+   var allChartMods = newChartMods.merge(chartMods);
+   allChartMods.attr("transform", m => "translate(" + xScale(m[0]) + ", " + yScale(0) + ")");
+   allChartMods.select("text").text(m => m[1].name);
 }
 
 fillModsTable();
