@@ -5,7 +5,6 @@ TODO:
  chart overlay going off the chart on left
  too many x ticks on chart
  externally sourced investment contribs (e.g. 401k) to get rid of placeholders
- thing added in mod: name shouldn't be disabled!
  fix date modifications: mod reordering!!!
  remove investments etc.
  collapsed investment etc.?
@@ -323,9 +322,9 @@ Copy shareable link
       </div>
 	</div>
     <div class="incomesOuterContainer outerContainer"><details><summary><span>Incomes</span></summary><div class="incomesContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newIncome" onclick="addNewIncome(this)"><i class="material-icons">add</i></button></details></div>
-    <div class="expensesOuterContainer outerContainer"><details><summary><span>Expenses</span></summary><div class="expensesContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newIncome" onclick="addNewExpense(this)"><i class="material-icons">add</i></button></details></div>
-    <div class="investmentsOuterContainer outerContainer"><details><summary><span>Investments</span></summary><div class="investmentsContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newIncome" onclick="addNewInvestment(this)"><i class="material-icons">add</i></button></details></div>
-    <div class="debtsOuterContainer outerContainer"><details><summary><span>Debts</span></summary><div class="debtsContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newIncome" onclick="addNewDebt(this)"><i class="material-icons">add</i></button></details></div>
+    <div class="expensesOuterContainer outerContainer"><details><summary><span>Expenses</span></summary><div class="expensesContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newExpense" onclick="addNewExpense(this)"><i class="material-icons">add</i></button></details></div>
+    <div class="investmentsOuterContainer outerContainer"><details><summary><span>Investments</span></summary><div class="investmentsContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newInvestment" onclick="addNewInvestment(this)"><i class="material-icons">add</i></button></details></div>
+    <div class="debtsOuterContainer outerContainer"><details><summary><span>Debts</span></summary><div class="debtsContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newDebt" onclick="addNewDebt(this)"><i class="material-icons">add</i></button></details></div>
   </div>
 </div>
 
@@ -917,7 +916,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb) {
   if (!isInitial) {
     cash.attr("disabled", "");
   }
-  cash.attr("value", d => getPortfolioFn(d)[1].cash);
+  cash.attr("value", d => return getPortfolioFn(d)[1].cash);
   cash.property("value", d => getPortfolioFn(d)[1].cash);
   
   var isNumeric = function(property) {
@@ -1099,6 +1098,10 @@ fillModsTable = function() {
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").select(".portfolio").data(mods);
   modContainers.exit().remove();
   var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
+  newModContainers.select(".newIncome").attr("onclick", "addNewIncomeMod(this)");
+  newModContainers.select(".newExpense").attr("onclick", "addNewExpenseMod(this)");
+  newModContainers.select(".newInvestment").attr("onclick", "addNewInvestmentMod(this)");
+  newModContainers.select(".newDebt").attr("onclick", "addNewDebtMod(this)");
   newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i).attr("value", "0");
   newModContainers.select(".cashContainer").select("label").attr("for", (d,i) => "initialCash" + i);
   newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => { componentHandler.upgradeElement(x); });
@@ -1111,12 +1114,10 @@ fillModsTable = function() {
 	mod[1].name = d3.select(this).node().value;
 	refresh();
   });
-  //firstHeaderRow.append("a").attr("style", "color: inherit; margin: 2px").attr("class", "disableMod").append("i").attr("class", "material-icons md-dark");
   firstHeaderRow.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("power_settings_new");
   firstHeaderRow.append("div").attr("style", "float: right; width: 0.5em; min-height: 1px");
   firstHeaderRow.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("delete");
 
-  //firstHeaderRow.append("a").attr("style", "color: inherit; margin: 2px").attr("class", "removeMod").append("i").attr("class", "material-icons md-dark").html("delete");
   newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
