@@ -3,13 +3,12 @@
 TODO:
  total and +/- on summaries!
  fix mod remove button placement
- optimize rendering for long timeframes
+ optimize rendering for long timeframes: limit # of points between each mod
  undo mods!
  clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  cash out investments etc.
  chart overlay going off the chart on left
  store state in cookie
- too many x ticks on chart
  externally sourced investment contribs (e.g. 401k) to get rid of placeholders
  fix date modifications: mod reordering!!!
  collapsed investment etc.?
@@ -1383,7 +1382,8 @@ var maxValue = 0.0;
   areas.exit().remove();
 
 var xTicks = [];
-for (var year = start.getFullYear() + 1; year < end.getFullYear(); year++) {
+var yearIncrement = max(Math.floor((end.getFullYear() - start.getFullYear()) / 10), 1);
+for (var year = start.getFullYear() + 1; year < end.getFullYear(); year+=yearIncrement) {
   xTicks.push(new Date(year, 0, 1));
 }
 var yTickDistance = (maxValue - minValue) / 5;
