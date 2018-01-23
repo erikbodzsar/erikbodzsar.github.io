@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <!--
 TODO:
- total and +/- on summaries!
- fix mod remove button placement
+ externally sourced investment contribs (e.g. 401k) to get rid of placeholders
  optimize rendering for long timeframes: limit # of points between each mod
+ one-time deposit / withdrawal
  undo mods!
  clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
+ collapsed investment etc.?
+
+ total and +/- on summaries!
+ fix mod remove button placement
  cash out investments etc.
  chart overlay going off the chart on left
  store state in cookie
- externally sourced investment contribs (e.g. 401k) to get rid of placeholders
  fix date modifications: mod reordering!!!
- collapsed investment etc.?
- one-time deposit / withdrawal
   
  use snackbar for link copy?
 -->
@@ -439,6 +440,7 @@ addNewInvestment = function(elem) {
     start: 1000,
     interest: 0.01/12,
 	useAsCash: false,
+	funding: 0,
   };
   validPortfoliosEnd = 1;
   refresh();
@@ -650,6 +652,7 @@ investments[nextIdTmp++] = {
   start: 100000.0,
   interest: 0.04/12,
   monthly: 1000.0,
+  funding: 0,
 };
 
 portfolio = {
@@ -685,7 +688,7 @@ getId = function(name, portfolio) {
 
 mods = [];
 
-current_version = 2;
+current_version = 3;
 
 createURLParam = function() {
   var json = JSON.stringify([current_version,portfolios[0],mods]);
@@ -716,6 +719,13 @@ parse = function(version, data) {
 	  oldMods[idx][1].disabled = false;
 	}
 	parse(2, [2, oldPortfolios, oldMods]);
+  } else if (version == 2) {
+    var oldPortfolios = data[1];
+	var oldMods = data[2];
+	for (var i in oldPortfolios[1].investments) {
+	  oldPortfolios[1].investments[i].funding = 0;
+	}
+	parse(3, [3, oldPortfolios, oldMods]);
   } else if (version == current_version) {
     portfolios = [data[1]];
 	mods = data[2];
@@ -808,7 +818,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	  x.start -= withdrawal;
 	  b += withdrawal;
 	} else {
-      x.start = max(0, x.start + x.start * x.interest + x.monthly);
+      x.start = max(0, x.start + x.start * x.interest + x.monthly + ('funding' in x ? x.funding : 0));
 	}
 	x.start = roundToCents(x.start);
   };
@@ -923,6 +933,7 @@ fillInitialTable = function() {
     	refresh();
       },
 	  function(data, kind, id) {
+	    console.log(data, kind, id);
 	    if (!confirm("Remove " + data[1][kind][id].name + "?")) return;
 		delete data[1][kind][id];
 		removeModsForId(id);
@@ -999,7 +1010,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
 	incomes.exit().remove();
-	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "position: relative");
+	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-kind", () => kind).attr("style", "position: relative");
 	newIncomes.append("button")
 	    .attr("style", function(d) {
 		  var display;
@@ -1012,6 +1023,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 		.append("i").attr("class", "material-icons").html("delete");
     newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
     var allIncomes = newIncomes.merge(incomes);
+	allIncomes.attr("data-id", d => d[0]);
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
   }
@@ -1039,6 +1051,10 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	addProperty(newInvestments, allInvestments, "start", isInitial, 6, 4, 2);
 	addProperty(newInvestments, allInvestments, "monthly", true, 6, 4, 2);
 	addProperty(newInvestments, allInvestments, "interest", true, 6, 4, 2);
+
+	if (kind == "investments") {
+	  addProperty(newInvestments, allInvestments, "funding", true, 6, 4, 2);
+    }
 
 	var idFn1 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 6)).attr("data-idx"); };
 	var idFn2 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 7)).attr("data-idx"); };
