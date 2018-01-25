@@ -4,7 +4,6 @@ TODO:
  one-time deposit / withdrawal
  undo mods!
  clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
- collapsed investment etc.?
  highlight things with mods
 
  total and +/- on summaries!
@@ -70,10 +69,17 @@ TODO:
 	}
 
 	.portfolioHeader {
-	  background-color: #303F9F;
+	  background-color: #5C6BC0;
 	  color: #FFFFFF;
 	  padding-top: 0.5em;
 	  padding-bottom: 0.5em;
+	  position: relative;
+	}
+	
+	.portfolioExpand {
+	  position: absolute;
+	  bottom: 5px;
+	  right: 5px;
 	}
 	
 	.portfolio {
@@ -316,7 +322,14 @@ Copy shareable link
 </div>
 
 <div id="portfolioTemplate" class="portfolio">
-  <div class="portfolioHeader"><span>Starting portfolio</span>
+  <div class="portfolioHeader">
+    <div class="modName mdl-textfield" style="width: 60%">
+	  <input type="text" class="mdl-textfield__input" style="vertical-align: top; width: 100%" value="Starting portfolio" disabled>
+	</div>
+	<button class="portfolioExpand mdl-button" onclick="onPortfolioExpand(this)">
+      <i class="material-icons">expand_less</i>
+    </button>
+	<!-- TODO ADD START DATE -->
   </div>
   <div class="portfolioBody">
     <div class="cashContainer">
@@ -351,12 +364,26 @@ roundToCents = function(x) { return Math.floor(x*100)/100.0; }
 
 setUpInitialPortfolio = function() {
   d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
-  d3.select("#initial").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
+  <!-- TODO WHY DONT THESE NEED UPGRADE?! IS MDL INIT AFTER THESE ARE FILLED IN? -->
+  d3.select("#initial").select(".portfolioHeader").select(".mdl-textfield").attr("class", "modName mdl-textfield mdl-js-textfield");
+  d3.select("#initial").select(".portfolioBody").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
+  d3.select("#initial").select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
 }
 setUpInitialPortfolio();
 
 mouseX = 0;
 mouseY = 0;
+
+onPortfolioExpand = function(e) {
+  var state = d3.select(e).select("i").text();
+  if (state == "expand_more") {
+    d3.select(e).select("i").text("expand_less");
+	d3.select(ancestor(e,2)).select(".portfolioBody").attr("style", null);
+  } else {
+    d3.select(e).select("i").text("expand_more");
+	d3.select(ancestor(e,2)).select(".portfolioBody").attr("style", "display: none");
+  }
+}
 
 changeEndDate = function() {
   var dateInputValue = d3.select("#changeEndDate").node().value.split("-");
@@ -932,7 +959,6 @@ fillInitialTable = function() {
     	refresh();
       },
 	  function(data, kind, id) {
-	    console.log(data, kind, id);
 	    if (!confirm("Remove " + data[1][kind][id].name + "?")) return;
 		delete data[1][kind][id];
 		removeModsForId(id);
@@ -1174,19 +1200,21 @@ fillModsTable = function() {
   newModContainers.select(".newDebt").attr("onclick", "addNewDebtMod(this)");
   newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i).attr("value", "0");
   newModContainers.select(".cashContainer").select("label").attr("for", (d,i) => "initialCash" + i);
-  newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => { componentHandler.upgradeElement(x); });
+  newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => componentHandler.upgradeElement(x));
+ 
   var newHeaders = newModContainers.select(".portfolioHeader");
-  newHeaders.select("span").remove();
-  var firstHeaderRow = newHeaders.append("div");
-
-  firstHeaderRow.append("div").attr("class", "mdl-textfield mdl-js-textfield").attr("style", "width: 60%").append("input").attr("type", "text").attr("class", "modName mdl-textfield__input").attr("style", "vertical-align: top; width: 100%").on("input", function() {
+  newHeaders.select(".modName").select("input").attr("disabled", null).on("input", function() {
 	var mod = d3.select(ancestor(this, 4)).datum();
 	mod[1].name = d3.select(this).node().value;
 	refresh();
   });
-  firstHeaderRow.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("power_settings_new");
-  firstHeaderRow.append("div").attr("style", "float: right; width: 0.5em; min-height: 1px");
-  firstHeaderRow.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("delete");
+  newHeaders.select(".modName").attr("class", "modName mdl-textfield mdl-js-textfield").nodes().forEach(x => componentHandler.upgradeElement(x));
+  newHeaders.select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
+
+  var headerButtons = newHeaders.append("div").attr("style", "position: absolute; top: 5px; right: 5px");
+  headerButtons.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("power_settings_new");
+  headerButtons.append("div").attr("style", "float: right; width: 0.5em; min-height: 1px");
+  headerButtons.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("delete");
 
   newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
@@ -1221,8 +1249,8 @@ fillModsTable = function() {
   var allHeaders = allModContainers.select(".portfolioHeader");
   allHeaders.select(".disableMod").attr("onclick", (d,i) => "disableMod("+i+")");
   allHeaders.select(".removeMod").attr("onclick", (d,i) => "removeMod("+i+")");
-  allHeaders.select(".modName").attr("value", d => d[1].name);
-  allHeaders.select(".modName").property("value", d => d[1].name);
+  allHeaders.select(".modName").select("input").attr("value", d => d[1].name);
+  allHeaders.select(".modName").select("input").property("value", d => d[1].name);
   allHeaders.select(".modDate").attr("value", d => yyyyMmDd(d[0]));
   allHeaders.select(".modDate").property("value", d => yyyyMmDd(d[0]));
   portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
