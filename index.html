@@ -5,6 +5,7 @@ TODO:
  undo mods!
  clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  collapsed investment etc.?
+ highlight things with mods
 
  total and +/- on summaries!
  fix mod remove button placement
@@ -1056,7 +1057,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 
 	var idFn1 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 6)).attr("data-idx"); };
 	var idFn2 = function(d) { return kind + "-useAsCash-" + d[0] + "-" + d3.select(ancestor(this, 7)).attr("data-idx"); };
-    var newCoverExpenses = newInvestments.append("label").attr("class", "mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect").attr("for", idFn1);
+    var newCoverExpenses = newInvestments.append("label").attr("style", "height: initial").attr("class", "mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect").attr("for", idFn1);
 	newCoverExpenses.append("input")
 	    .attr("type", "checkbox")
 		.attr("id", idFn2)
