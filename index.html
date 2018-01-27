@@ -2,7 +2,6 @@
 <!--
 TODO:
  one-time deposit / withdrawal
- undo mods!
  clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  highlight things with mods
 
@@ -785,10 +784,10 @@ hideUrl = function() {
 
 applyMod = function(portfolio, mod) {
   if (mod.disabled) return;
-  mod.change_income.map(x => Object.assign(portfolio.incomes[x.id], x.income));
-  mod.change_expense.map(x => Object.assign(portfolio.expenses[x.id], x.expense));
-  mod.change_investment.map(x => Object.assign(portfolio.investments[x.id], x.investment));
-  mod.change_debt.map(x => Object.assign(portfolio.debts[x.id], x.debt));
+  mod.change_income.map(x => { Object.assign(portfolio.incomes[x.id], x.income); portfolio.incomes[x.id].hasMod = true; } );
+  mod.change_expense.map(x => { Object.assign(portfolio.expenses[x.id], x.expense); portfolio.expenses[x.id].hasMod = true; });
+  mod.change_investment.map(x => { Object.assign(portfolio.investments[x.id], x.investment); portfolio.investments[x.id].hasMod = true; });
+  mod.change_debt.map(x => { Object.assign(portfolio.debts[x.id], x.debt); portfolio.debts[x.id].hasMod = true; });
   mod.new_expense.map(x => { portfolio.expenses[x.id] = x.expense; portfolio.expenses[x.id].isNew = true; });
   mod.new_income.map(x => { portfolio.incomes[x.id] = x.income; portfolio.incomes[x.id].isNew = true; });
   mod.new_investment.map(x => { portfolio.investments[x.id] = x.investment; portfolio.investments[x.id].isNew = true; });
@@ -825,6 +824,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	for (var id in x) {
       c[id] = Object.assign({}, x[id]);
 	  c[id].isNew = false;
+	  c[id].hasMod = false;
 	};
 	return c;
   }
@@ -964,7 +964,8 @@ fillInitialTable = function() {
 		removeModsForId(id);
         validPortfoliosEnd = 1;
 		refresh();
-	  }
+	  },
+	  () => {}
   );
 }
 
@@ -975,7 +976,7 @@ ancestor = function(node, n) {
   return ancestor(node.parentNode, n-1);
 }
 
-portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, deleteCb) {
+portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, deleteCb, undoModsCb) {
   var cashContainer = container.select(".cashContainer");
   var cash = cashContainer.select("input");
   cash.on("input", function() { getPortfolioFn(d3.select(this).datum())[1].cash = Number(this.value); validPortfoliosEnd = 1; refresh(); });
@@ -1026,6 +1027,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	};
 	allContainers.select("." + inputClass).merge(input)
 		.attr("value", d => printProperty(property, d))
+		.property("value", d => printProperty(property, d))
 		.attr("disabled", d => disabled(d) ? "" : null);
 	inputDiv.nodes().forEach(x => componentHandler.upgradeElement(x) );
   };
@@ -1036,18 +1038,29 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
 	incomes.exit().remove();
 	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-kind", () => kind).attr("style", "position: relative");
-	newIncomes.append("button")
+	var buttons = newIncomes.append("div").attr("style", "position: absolute; top: 2px; right: 2px; z-index: 2");
+	buttons.append("button")  
+		.attr("class", "undoModsButton mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
+		.on("click", function() { undoModsCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
+		.append("i").attr("class", "material-icons").html("undo");
+	buttons.append("button")
 	    .attr("style", function(d) {
 		  var display;
 		  if (isInitial || ('isNew' in d[1] && d[1].isNew)) display = "";
 		  else display = "; display: none";
-		  return "position: absolute; top: 2px; right: 2px; z-index: 2; transform: scale(0.8)" + display;
+		  return "transform: scale(0.8)" + display;
 		})
 		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
-		.on("click", function() { deleteCb(d3.select(ancestor(this, 5)).datum(), d3.select(ancestor(this,1)).attr("data-kind"), d3.select(ancestor(this,1)).attr("data-id")); })
+		.on("click", function() { deleteCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
 		.append("i").attr("class", "material-icons").html("delete");
     newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
     var allIncomes = newIncomes.merge(incomes);
+	allIncomes.select(".undoModsButton").attr("style", function(d) {
+	  var display;
+      if ('hasMod' in d[1] && d[1].hasMod) display = "";
+	  else display = "; display: none";
+	  return "transform: scale(0.8)" + display;
+	})
 	allIncomes.attr("data-id", d => d[0]);
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
@@ -1060,18 +1073,29 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
 	investments.exit().remove();
 	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "position: relative");
-	newInvestments.append("button")
+	var buttons = newInvestments.append("div").attr("style", "position: absolute; top: 2px; right: 2px; z-index: 2");
+	buttons.append("button")  
+		.attr("class", "undoModsButton mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
+		.on("click", function() { undoModsCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
+		.append("i").attr("class", "material-icons").html("undo");
+	buttons.append("button")
 	    .attr("style", function(d) {
 		  var display;
 		  if (isInitial || ('isNew' in d[1] && d[1].isNew)) display = "";
 		  else display = "; display: none";
-		  return "position: absolute; top: 2px; right: 2px; z-index: 2; transform: scale(0.8)" + display;
+		  return "transform: scale(0.8)" + display;
 		})
 		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
-		.on("click", function() { deleteCb(d3.select(ancestor(this, 5)).datum(), d3.select(ancestor(this,1)).attr("data-kind"), d3.select(ancestor(this,1)).attr("data-id")); })
+		.on("click", function() { deleteCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
 		.append("i").attr("class", "material-icons").html("delete");
-    newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
+    newInvestments.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
     var allInvestments = newInvestments.merge(investments);
+	allInvestments.select(".undoModsButton").attr("style", function(d) {
+	  var display;
+      if ('hasMod' in d[1] && d[1].hasMod) display = "";
+	  else display = "; display: none";
+	  return "transform: scale(0.8)" + display;
+	})
 	addProperty(newInvestments, allInvestments, "name", isInitial, 6, 4, 2);
 	addProperty(newInvestments, allInvestments, "start", isInitial, 6, 4, 2);
 	addProperty(newInvestments, allInvestments, "monthly", true, 6, 4, 2);
@@ -1329,10 +1353,39 @@ fillModsTable = function() {
 	  if (found_idx == null) { console.log("Couldn't find mod with id " + id); return; }
 	  if (!confirm("Remove " + mod[1][newModKind][found_idx][name].name + "?")) return;
       mod[1][newModKind].splice(found_idx, 1);
-	  removeModsForId(id);
 	  clearPortfoliosAfter(mod[0]);
+	  removeModsForId(id);
 	  refresh();
-  });
+    },
+    function(mod, kind, id) {
+	  var name;
+	  var changeModKind;
+	  if (kind == "investments") {
+		changeModKind = "change_investment";
+		name = "investment";
+	  } else if (kind == "debts") {
+		changeModKind = "change_debt";
+		name = "debt";
+      } else if (kind == "expenses") {
+		changeModKind = "change_expense";
+		name = "expense";
+	  } else if (kind == "incomes") {
+		changeModKind = "change_income";
+		name = "income";
+	  }
+	  var found_idx = null;
+ 	  for (var idx in mod[1][changeModKind]) {
+	    if (mod[1][changeModKind][idx].id == id) {
+		  found_idx = idx;
+		  break;
+		}
+	  }
+	  if (found_idx == null) { console.log("Couldn't find mod for id " + id); return; }
+	  if (!confirm("Undo all changes to " + getPortfolio(mod[0])[1][kind][id].name + "?")) return;
+	  clearPortfoliosAfter(mod[0]);
+      mod[1][changeModKind].splice(found_idx, 1);
+	  refresh();
+    });
    
    var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
    chartMods.exit().remove();
