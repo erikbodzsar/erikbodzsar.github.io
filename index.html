@@ -2,8 +2,10 @@
 <!--
 TODO:
  one-time deposit / withdrawal
- clear mod if its the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
+ limit x axis ticks
+ clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  highlight things with mods
+ mortgage auto payoff?
 
  total and +/- on summaries!
  fix mod remove button placement
@@ -265,6 +267,7 @@ to see what would happen over time if there are no changes at all in your financ
 Then, you can add a new life event
 (e.g., taking time off work to sail across the world for a year, getting a raise, buying a home, starting a new investment account),
 and see how that affects your net worth, or when you can retire.
+Add as many more life events as you’d like!
 </p>
 </div>
 </section>
@@ -422,6 +425,7 @@ changeEndDate = function() {
   if (isNaN(y) || isNaN(m) || isNaN(d)) return;
   var date = new Date(y,m-1,d);
   end = date;
+  clearPortfoliosAfter(end);
   init();
   refresh();
 }
@@ -636,7 +640,7 @@ initSlider = function(slider, begin, end, values, callback) {
 stacked = true;
 
 start = new Date(2018, 0, 1);
-end = new Date(2030, 0, 1);
+end = new Date(2080, 0, 1);
 
 chartXPadding = 10;
 chartYPadding = 10;
@@ -658,7 +662,7 @@ total = function(portfolio) {
     t += portfolio.investments[id].start;
   }
   for (var id in portfolio.debts) {
-    t -= portfolio.debts[id].start;
+    t += portfolio.debts[id].start;
   }
   return t;
 };
@@ -700,36 +704,51 @@ d3.select("#chart").on("mousemove", mouseMove);
 //colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
 colors = ["#FFE0B2", "#FFB74D", "#FF9800", "#F57C00", "#E65100", "#BF360C"];
 
-investments = {};
 nextIdTmp = 1;
 
-investments[nextIdTmp++] = {
-  name: "dummy investment",
-  start: 100000.0,
-  interest: 0.04/12,
-  monthly: 1000.0,
-  funding: 0,
-};
-
 portfolio = {
-  cash: 100000,
-  investments: investments,
+  cash: 50000,
+  investments: {},
   debts:{},
   incomes: {},
   expenses: {},
 };
 
 portfolio.incomes[nextIdTmp++] = {
-  name: "dummy income",
+  name: "salary",
   monthly: 5000,
   start: 0,
   interest: 0,
 };
+
 portfolio.expenses[nextIdTmp++] = {
-  name: "dummy expense",
+  name: "living expenses",
   monthly: 2000,
   start: 0,
   interest: 0,
+};
+
+portfolio.expenses[nextIdTmp++] = {
+  name: "rent",
+  monthly: 1500,
+  start: 0,
+  interest: 0,
+};
+
+portfolio.investments[nextIdTmp++] = {
+  name: "401k",
+  start: 5000.0,
+  interest: 0.04/12,
+  monthly: 0.0,
+  funding: 500,
+};
+
+portfolio.investments[nextIdTmp++] = {
+  name: "savings account",
+  start: 50000.0,
+  interest: 0.01/12,
+  monthly: 1500.0,
+  funding: 0,
 };
 
 portfolios = [[start, portfolio]];
@@ -743,6 +762,66 @@ getId = function(name, portfolio) {
 }
 
 mods = [];
+/*
+mods.push([new Date(2030, 0, 1), {
+  name: "buy a home",
+  disabled: false,
+  change_income: [],
+  change_investment: [
+    {id: getId("401k", portfolio), investment: { monthly: 0}},
+    {id: getId("savings account", portfolio), investment: { monthly: 0 }},
+  ],
+  change_expense: [{id: getId("rent", portfolio), expense: { monthly: 0 }}],
+  change_debt: [],
+  new_income: [],
+  new_expense: [{
+    id: nextIdTmp++,
+	expense: {
+      name: "home maintenance",
+      monthly: 500,
+      start: 0,
+      interest: 0.00/12,
+	}}],
+  new_investment: [],
+  new_debt: [{
+    id: nextIdTmp++,
+    debt: {
+      name: "mortgage",
+      monthly: 3000,
+      start: -200000,
+      interest: 0.00/12,
+    }
+  }],
+}]);
+
+mods.push([new Date(2035, 0, 1), {
+  name: "mortgage paid off",
+  disabled: false,
+  change_income: [],
+  change_investment: [],
+  change_expense: [],
+  change_debt: [],
+  new_income: [],
+  new_expense: [],
+  new_investment: [],
+  new_debt: [],
+}]);
+*/
+mods.push([new Date(2050, 0, 1), {
+  name: "retirement",
+  disabled: false,
+  change_income: [{id: getId("salary", portfolio), income: { monthly: 0 }}],
+  change_investment: [
+    {id: getId("401k", portfolio), investment: { funding: 0, monthly: 0, useAsCash: true}},
+    {id: getId("savings account", portfolio), investment: { funding: 0, monthly: 0, useAsCash: true}},
+  ],
+  change_expense: [],
+  change_debt: [],
+  new_income: [],
+  new_expense: [],
+  new_investment: [],
+  new_debt: [],
+}]);
 
 current_version = 3;
 
@@ -840,7 +919,7 @@ balance = function(portfolio) {
   for (var id in portfolio["debts"]) {
     if (portfolio["debts"][id].useAsCash) continue;
 	var m = portfolio["debts"][id].monthly;
-	if (m < 0 && -m > portfolio["debts"][id].start) m = -portfolio["debts"][id].start;
+	if (m > 0 && m > -portfolio["debts"][id].start) m = -portfolio["debts"][id].start;
     ret -= m;	
   }
   for (var id in portfolio["incomes"]) {
@@ -868,12 +947,14 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
     incomes: copy(portfolio.incomes),
     expenses: copy(portfolio.expenses),
   });
-  var update = function(x) {
+  var update = function(x, kind) {
     if ('useAsCash' in x && x.useAsCash) {
 	  x.start = x.start + x.start * x.interest;
 	  var withdrawal = max(min(-b, x.start), 0);
 	  x.start -= withdrawal;
 	  b += withdrawal;
+	} else if (kind == "debts") {
+      x.start = min(0, x.start + x.start * x.interest + x.monthly + ('funding' in x ? x.funding : 0));
 	} else {
       x.start = max(0, x.start + x.start * x.interest + x.monthly + ('funding' in x ? x.funding : 0));
 	}
@@ -881,7 +962,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
   };
   for (var p in next) {
     for (var id in next[p]) {
-	  update(next[p][id]);
+	  update(next[p][id], p);
 	}
   }
   next.cash += b;
@@ -1164,7 +1245,7 @@ getTotalIncome = function(portfolio) {
     totalIncome += max(0, -portfolio.investments[id].monthly);
   }
   for (var id in portfolio.debts) {
-    totalIncome += max(0, portfolio.debts[id].monthly);
+    totalIncome += max(0, -portfolio.debts[id].monthly);
   }
   return totalIncome;
 }
@@ -1417,21 +1498,6 @@ fillModsTable = function() {
       mod[1][changeModKind].splice(found_idx, 1);
 	  refresh();
     });
-   
-   var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
-   chartMods.exit().remove();
-   var newChartMods = chartMods.enter().append("g").attr("class", "chartMod");
-   yAdj = function(m, i) {
-     var adj = -(i%3+1)*2;
-	 return adj + "em";
-   };
-   newChartMods.append("line").attr("x1", 0).attr("x2", 0).attr("y1", 0).attr("y2", yAdj).attr("class", "modLine");
-   newChartMods.append("text").attr("x", 0).attr("y", yAdj);
-   
-   var allChartMods = newChartMods.merge(chartMods);
-   allChartMods.attr("style", m => m[1].disabled ? "display:none" : null);
-   allChartMods.attr("transform", m => "translate(" + xScale(m[0]) + ", " + yScale(0) + ")");
-   allChartMods.select("text").text(m => m[1].name);
 }
 
 fillModsTable();
@@ -1443,6 +1509,25 @@ var chart = d3.select("#chart").select("#mainChart");
 var lineValuesMap = {};
 var maxId = nextId();
 for (var i = 0; i < maxId; i++) { lineValuesMap[i] = []; }
+var idToIdx = {};
+var idx = 0;
+for (var id in portfolios[0][1].debts) {
+  idToIdx[id] = idx++;
+}
+for (var i = 0; i < mods.length; i++) {
+  for (var j = 0; j < mods[i][1].new_debt.length; j++) {
+    idToIdx[mods[i][1].new_debt[j].id] = idx++;
+  }
+}
+idToIdx[0] = idx++;
+for (var id in portfolios[0][1].investments) {
+  idToIdx[id] = idx++;
+}
+for (var i = 0; i < mods.length; i++) {
+  for (var j = 0; j < mods[i][1].new_investment.length; j++) {
+    idToIdx[mods[i][1].new_investment[j].id] = idx++;
+  }
+}
 
 var linePointsToRender = 100;
 var incMillis = (end.getTime() - start.getTime()) / linePointsToRender;
@@ -1466,12 +1551,15 @@ datesToRender.sort((a,b) => {
 
 datesToRender.forEach(function(d) {
   var p = getPortfolio(d);
-  lineValuesMap[0].push({date: p[0], value: p[1].cash});
+  lineValuesMap[idToIdx[0]].push({date: p[0], value: p[1].cash});
   for (var i = 1; i < maxId; i++) {
+    if (!(i in idToIdx)) continue;
     if (i in p[1].investments) {
-	  lineValuesMap[i].push({date: p[0], value: p[1].investments[i].start});
+	  lineValuesMap[idToIdx[i]].push({date: p[0], value: p[1].investments[i].start});
+	} else if (i in p[1].debts) {
+	  lineValuesMap[idToIdx[i]].push({date: p[0], value: p[1].debts[i].start});
 	} else {
-	  lineValuesMap[i].push({date: p[0], value: 0});
+	  lineValuesMap[idToIdx[i]].push({date: p[0], value: 0});
 	}
   }
 });
@@ -1490,9 +1578,7 @@ for (var i in lineValuesMap) {
   }
 }
 to_delete.forEach(i => delete lineValuesMap[i]);
-// TODO: debts!! above
 var lineValues = Object.entries(lineValuesMap);
-// TODO: nice negative values on stacked chart
 var minValue = 0.0;
 var maxValue = 0.0;
   var stackedValues = [];
@@ -1559,6 +1645,21 @@ chart.append("g")
     .attr("class", "axis")
     .attr("transform", "translate(0,"+(yScale(0))+")")
     .call(d3.axisTop(xScale).tickValues(xTicks));
+   
+   var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
+   chartMods.exit().remove();
+   var newChartMods = chartMods.enter().append("g").attr("class", "chartMod");
+   yAdj = function(m, i) {
+     var adj = -(i%3+1)*2;
+	 return adj + "em";
+   };
+   newChartMods.append("line").attr("x1", 0).attr("x2", 0).attr("y1", 0).attr("y2", yAdj).attr("class", "modLine");
+   newChartMods.append("text").attr("x", 0).attr("y", yAdj);
+   
+   var allChartMods = newChartMods.merge(chartMods);
+   allChartMods.attr("style", m => m[1].disabled ? "display:none" : null);
+   allChartMods.attr("transform", m => "translate(" + xScale(m[0]) + ", " + yScale(0) + ")");
+   allChartMods.select("text").text(m => m[1].name);
 }
 
 refreshChart();
