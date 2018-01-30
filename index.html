@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <!--
 TODO:
+ BUG: 1. set mortgate paid off 401k monthly to 2k; 2. set debt payoff to 30k; 3. set debt payoff to 3k -> doesnt go back to #2!!!
  one-time deposit / withdrawal
  limit x axis ticks
  clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  highlight things with mods
- mortgage auto payoff?
+ remove investment/debt after it runs out
 
  total and +/- on summaries!
  fix mod remove button placement
@@ -453,6 +454,36 @@ nextId = function() {
   return maxId+1;
 }
 
+createMod = function() {
+  return {
+    name: "new life event",
+	disabled: false,
+    change_income: [],
+    change_investment: [],
+    new_income: [],
+    new_expense: [],
+    new_investment: [],
+    new_debt: [],
+    change_expense: [],
+    change_debt: [],
+  };
+}
+
+createInvestment = function(name, monthly, start, interest, useAsCash, funding) {
+  var id = nextId();
+  autoMods[id] = { mod: createMod() };
+  return [id, {
+    name: name,
+    monthly: monthly,
+    start: start,
+    interest: interest,
+	useAsCash: useAsCash,
+	funding: funding,
+  }];
+}
+
+createDebt = createInvestment;
+
 addExpense = function(i) {
   var addExpenseDiv = d3.select("#addExpense");
   mods[i][1].new_expense.push({
@@ -494,26 +525,15 @@ addNewExpense = function(elem) {
 }
 
 addNewInvestment = function(elem) {
-  portfolios[0][1].investments[nextId()] = {
-    name: "new investment",
-    monthly: 0,
-    start: 1000,
-    interest: 0.01/12,
-	useAsCash: false,
-	funding: 0,
-  };
+  var [id, investment] = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
+  portfolios[0][1].investments[id] = investment;
   validPortfoliosEnd = 1;
   refresh();
 }
 
 addNewDebt = function(elem) {
-  portfolios[0][1].debts[nextId()] = {
-    name: "new debt",
-    monthly: 0,
-    start: 1000,
-    interest: 0.01/12,
-	useAsCash: false,
-  };
+  var [id, debt] = createDebt("new debt", 0, 1000, 0.01/12, false, 0);
+  portfolios[0][1].debts[id] = debt;
   validPortfoliosEnd = 1;
   refresh();
 }
@@ -544,24 +564,16 @@ addNewExpenseMod = function(elem) {
 
 addNewInvestmentMod = function(elem) {
   var mod = d3.select(ancestor(elem, 4)).datum();
-  mod[1].new_investment.push({id: nextId(), investment: {
-    name: "new investment",
-    monthly: 1000,
-    start: 0,
-    interest: 0.01/12,
-  }});
+  var [id, investment] = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
+  mod[1].new_investment.push({id: id, investment: investment});
   clearPortfoliosAfter(mod[0]);
   refresh();
 }
 
 addNewDebtMod = function(elem) {
   var mod = d3.select(ancestor(elem, 4)).datum();
-  mod[1].new_debt.push({id: nextId(), debt: {
-    name: "new debt",
-    monthly: 1000,
-    start: 0,
-    interest: 0.01/12,
-  }});
+  var [id, debt] = createInvestment("new debt", 0, 1000, 0.01/12, false, 0);
+  mod[1].new_debt.push({id: id, debt: debt});
   clearPortfoliosAfter(mod[0]);
   refresh();
 }
@@ -706,6 +718,8 @@ colors = ["#FFE0B2", "#FFB74D", "#FF9800", "#F57C00", "#E65100", "#BF360C"];
 
 nextIdTmp = 1;
 
+autoMods = {};
+
 portfolio = {
   cash: 50000,
   investments: {},
@@ -743,6 +757,8 @@ portfolio.investments[nextIdTmp++] = {
   funding: 500,
 };
 
+autoMods[nextIdTmp-1] = { mod: createMod() };
+
 portfolio.investments[nextIdTmp++] = {
   name: "savings account",
   start: 50000.0,
@@ -750,6 +766,8 @@ portfolio.investments[nextIdTmp++] = {
   monthly: 1500.0,
   funding: 0,
 };
+
+autoMods[nextIdTmp-1] = { mod: createMod() };
 
 portfolios = [[start, portfolio]];
 
@@ -762,7 +780,7 @@ getId = function(name, portfolio) {
 }
 
 mods = [];
-/*
+
 mods.push([new Date(2030, 0, 1), {
   name: "buy a home",
   disabled: false,
@@ -794,19 +812,11 @@ mods.push([new Date(2030, 0, 1), {
   }],
 }]);
 
-mods.push([new Date(2035, 0, 1), {
-  name: "mortgage paid off",
-  disabled: false,
-  change_income: [],
-  change_investment: [],
-  change_expense: [],
-  change_debt: [],
-  new_income: [],
-  new_expense: [],
-  new_investment: [],
-  new_debt: [],
-}]);
-*/
+autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1].mod.name = "mortgage paid off";
+
+// TODO xxx Create* methods that automatically add autoMod
+
 mods.push([new Date(2050, 0, 1), {
   name: "retirement",
   disabled: false,
@@ -935,6 +945,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
       c[id] = Object.assign({}, x[id]);
 	  c[id].isNew = false;
 	  c[id].hasMod = false;
+	  c[id].ranOut = false;
 	};
 	return c;
   }
@@ -948,6 +959,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
     expenses: copy(portfolio.expenses),
   });
   var update = function(x, kind) {
+    var old = x.start;
     if ('useAsCash' in x && x.useAsCash) {
 	  x.start = x.start + x.start * x.interest;
 	  var withdrawal = max(min(-b, x.start), 0);
@@ -958,6 +970,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	} else {
       x.start = max(0, x.start + x.start * x.interest + x.monthly + ('funding' in x ? x.funding : 0));
 	}
+	if (old != 0 && x.start == 0) x.ranOut = true;
 	x.start = roundToCents(x.start);
   };
   for (var p in next) {
@@ -971,25 +984,60 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 
 validPortfoliosEnd = 1;
 
+getAllMods = function() {
+  var allMods = [];
+  for (var i = 0; i < mods.length; i++) {
+    allMods.push(mods[i]);
+  }
+  for (var id in autoMods) {
+    if ('date' in autoMods[id]) {
+      allMods.push([autoMods[id].date, autoMods[id].mod]);
+	}
+  }
+  allMods.sort(function(a,b) {
+	if (a[0] < b[0]) return -1;
+	if (a[0] > b[0]) return 1;
+    return 0;
+  });
+  return allMods;
+}
+
 fillPortfolios = function(until) {
   var last = portfolios[validPortfoliosEnd-1];
   var nextMonth = function(date) {
     date.setMonth(date.getMonth()+1);
     return date;
   }
+  var allMods = getAllMods();
   var mods_idx = 0;
+  var startDate = last[0];
+  var foundAutoMods = {};
   for (var date = nextMonth(new Date(last[0])); date <= until; nextMonth(date)) {
     last = portfolios[validPortfoliosEnd-1];
-    for (; mods_idx < mods.length && mods[mods_idx][0] < last[0]; mods_idx++) {}
+    for (; mods_idx < allMods.length && allMods[mods_idx][0] < last[0]; mods_idx++) {}
     if (validPortfoliosEnd == portfolios.length) {
 	  portfolios.push([new Date(date), {}]);
 	}
 	fillNextPortfolio(portfolios[validPortfoliosEnd-1][1], portfolios[validPortfoliosEnd][1]);
+	for (var kind in portfolios[validPortfoliosEnd][1]) {
+	  for (var id in portfolios[validPortfoliosEnd][1][kind]) {
+	    if (portfolios[validPortfoliosEnd][1][kind][id].ranOut) {
+		  console.log("DBG", portfolios[validPortfoliosEnd][1][kind][id].name, " ran out on ", portfolios[validPortfoliosEnd][0]);
+		  autoMods[id].date = portfolios[validPortfoliosEnd][0];
+		  foundAutoMods[id] = true;
+		}
+	  }
+	}
 	var next = nextMonth(new Date(date));
-	for (; mods_idx < mods.length && mods[mods_idx][0] < next; mods_idx++) {
-	  applyMod(portfolios[validPortfoliosEnd][1], mods[mods_idx][1]);
+	for (; mods_idx < allMods.length && allMods[mods_idx][0] < next; mods_idx++) {
+	  applyMod(portfolios[validPortfoliosEnd][1], allMods[mods_idx][1]);
 	}
 	validPortfoliosEnd++;
+  }
+  for (var id in autoMods) {
+    if (!(id in foundAutoMods) && autoMods[id].date >= startDate) {
+	  delete autoMods[id].date;
+	}
   }
 }
 fillPortfolios(end);
@@ -1280,18 +1328,7 @@ addNewMod = function() {
     date = new Date(mods[mods.length-1][0]);
   }
   date.setFullYear(date.getFullYear()+1);
-  var newMod = [date, {
-    name: "new life event",
-	disabled: false,
-    change_income: [],
-    change_investment: [],
-    new_income: [],
-    new_expense: [],
-    new_investment: [],
-    new_debt: [],
-    change_expense: [],
-    change_debt: [],
-  }];
+  var newMod = [date, createMod()];
   
   var idx;
   for (idx = 0; idx < mods.length && mods[idx][0] <= date; idx++) {}
@@ -1327,7 +1364,8 @@ yyyyMmDd = function(date) {
 }
 
 fillModsTable = function() {
-  var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").select(".portfolio").data(mods);
+  var allMods = getAllMods();
+  var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").data(allMods);
   modContainers.exit().remove();
   var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
   newModContainers.select(".newIncome").attr("onclick", "addNewIncomeMod(this)");
@@ -1371,7 +1409,7 @@ fillModsTable = function() {
 	    if (a[0] < b[0]) return -1;
 		if (a[0] > b[0]) return 1;
         return 0;
-	  });
+	  });  // TODO no longer necessary because getAllMods is sorted?
 	  // TODO prevent going before start
 	  clearPortfoliosAfter(min);
 	  refresh();
@@ -1392,6 +1430,7 @@ fillModsTable = function() {
   portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
     false,
     function(mod, kind, id, property, value) {
+	  console.log("DBG", mod);
 	  var modKind;
 	  var name;
 	  var newModKind;
@@ -1646,7 +1685,7 @@ chart.append("g")
     .attr("transform", "translate(0,"+(yScale(0))+")")
     .call(d3.axisTop(xScale).tickValues(xTicks));
    
-   var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(mods);
+   var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(getAllMods());
    chartMods.exit().remove();
    var newChartMods = chartMods.enter().append("g").attr("class", "chartMod");
    yAdj = function(m, i) {
