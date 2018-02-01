@@ -7,6 +7,7 @@ TODO:
  clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  highlight things with mods
  remove investment/debt after it runs out
+ auto-cover expenses when cash runs out!?
 
  total and +/- on summaries!
  fix mod remove button placement
@@ -1004,6 +1005,13 @@ getAllMods = function() {
 
 fillPortfolios = function(until) {
   var last = portfolios[validPortfoliosEnd-1];
+  if (last[0] < until) {
+    for (var idx in autoMods) {
+	  if ('date' in autoMods[idx] && autoMods[idx].date > last[0]) {
+	    delete autoMods[idx].date;
+	  }
+	}
+  }
   var nextMonth = function(date) {
     date.setMonth(date.getMonth()+1);
     return date;
@@ -1014,7 +1022,7 @@ fillPortfolios = function(until) {
   var foundAutoMods = {};
   for (var date = nextMonth(new Date(last[0])); date <= until; nextMonth(date)) {
     last = portfolios[validPortfoliosEnd-1];
-    for (; mods_idx < allMods.length && allMods[mods_idx][0] < last[0]; mods_idx++) {}
+    for (; mods_idx < allMods.length && allMods[mods_idx][0] <= last[0]; mods_idx++) {}
     if (validPortfoliosEnd == portfolios.length) {
 	  portfolios.push([new Date(date), {}]);
 	}
@@ -1022,14 +1030,14 @@ fillPortfolios = function(until) {
 	for (var kind in portfolios[validPortfoliosEnd][1]) {
 	  for (var id in portfolios[validPortfoliosEnd][1][kind]) {
 	    if (portfolios[validPortfoliosEnd][1][kind][id].ranOut) {
-		  console.log("DBG", portfolios[validPortfoliosEnd][1][kind][id].name, " ran out on ", portfolios[validPortfoliosEnd][0]);
 		  autoMods[id].date = portfolios[validPortfoliosEnd][0];
+		  applyMod(portfolios[validPortfoliosEnd][1], autoMods[id].mod); // TODO CAN THESE BE DOUBLE-APPLIED WITH MODS BELOW?
 		  foundAutoMods[id] = true;
 		}
 	  }
 	}
 	var next = nextMonth(new Date(date));
-	for (; mods_idx < allMods.length && allMods[mods_idx][0] < next; mods_idx++) {
+	for (; mods_idx < allMods.length && allMods[mods_idx][0] <= next; mods_idx++) {
 	  applyMod(portfolios[validPortfoliosEnd][1], allMods[mods_idx][1]);
 	}
 	validPortfoliosEnd++;
@@ -1055,11 +1063,10 @@ getPortfolio = function(date) {
 clearPortfoliosAfter = function(date) {
   var idx = 0;
   for (; idx < portfolios.length; idx++) {
-    if (portfolios[idx][0] > date) {
+    if (portfolios[idx][0] >= date) {
 	  break;
 	}
   }
-  if (idx > 1) idx--;
   validPortfoliosEnd = idx;
 }
 
@@ -1430,7 +1437,6 @@ fillModsTable = function() {
   portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
     false,
     function(mod, kind, id, property, value) {
-	  console.log("DBG", mod);
 	  var modKind;
 	  var name;
 	  var newModKind;
