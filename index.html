@@ -472,7 +472,9 @@ createMod = function() {
 
 createInvestment = function(name, monthly, start, interest, useAsCash, funding) {
   var id = nextId();
-  autoMods[id] = { mod: createMod() };
+  var autoMod = createMod();
+  autoMod.name = name + " runs out";
+  autoMods[id] = { mod: autoMod };
   return [id, {
     name: name,
     monthly: monthly,
@@ -483,7 +485,20 @@ createInvestment = function(name, monthly, start, interest, useAsCash, funding) 
   }];
 }
 
-createDebt = createInvestment;
+createDebt = function(name, monthly, start, interest, useAsCash, funding) {
+  var id = nextId();
+  var autoMod = createMod();
+  autoMod.name = name + " paid off";
+  autoMods[id] = { mod: autoMod };
+  return [id, {
+    name: name,
+    monthly: monthly,
+    start: start,
+    interest: interest,
+	useAsCash: useAsCash,
+	funding: funding,
+  }];
+}
 
 addExpense = function(i) {
   var addExpenseDiv = d3.select("#addExpense");
@@ -759,6 +774,7 @@ portfolio.investments[nextIdTmp++] = {
 };
 
 autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1].mod.name = "401k runs out";
 
 portfolio.investments[nextIdTmp++] = {
   name: "savings account",
@@ -769,6 +785,7 @@ portfolio.investments[nextIdTmp++] = {
 };
 
 autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1].mod.name = "savings account runs out";
 
 portfolios = [[start, portfolio]];
 
@@ -781,7 +798,7 @@ getId = function(name, portfolio) {
 }
 
 mods = [];
-
+/*
 mods.push([new Date(2030, 0, 1), {
   name: "buy a home",
   disabled: false,
@@ -815,7 +832,7 @@ mods.push([new Date(2030, 0, 1), {
 
 autoMods[nextIdTmp-1] = { mod: createMod() };
 autoMods[nextIdTmp-1].mod.name = "mortgage paid off";
-
+*/
 // TODO xxx Create* methods that automatically add autoMod
 
 mods.push([new Date(2050, 0, 1), {
