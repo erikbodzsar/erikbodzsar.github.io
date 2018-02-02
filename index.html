@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
 TODO:
- BUG: 1. set mortgate paid off 401k monthly to 2k; 2. set debt payoff to 30k; 3. set debt payoff to 3k -> doesnt go back to #2!!!
+ remove delete/disable buttons for autoMods
  one-time deposit / withdrawal
  limit x axis ticks
  clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
@@ -15,7 +15,7 @@ TODO:
  cash out investments etc.
  chart overlay going off the chart on left
  store state in cookie
- fix date modifications: mod reordering!!!
+ fix date modifications: mod reordering!!!: if a date gets reordered with another one date buttons get messed up
   
  use snackbar for link copy?
 -->
@@ -799,7 +799,7 @@ getId = function(name, portfolio) {
 }
 
 mods = [];
-/*
+
 mods.push([new Date(2030, 0, 1), {
   name: "buy a home",
   disabled: false,
@@ -833,7 +833,7 @@ mods.push([new Date(2030, 0, 1), {
 
 autoMods[nextIdTmp-1] = { mod: createMod() };
 autoMods[nextIdTmp-1].mod.name = "mortgage paid off";
-*/
+
 // TODO xxx Create* methods that automatically add autoMod
 
 mods.push([new Date(2050, 0, 1), {
@@ -1011,7 +1011,9 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	if (old != 0 && x.start == 0) x.ranOut = true;
 	x.start = roundToCents(x.start);
   };
-  for (var p in next) {
+  var kindsToUpdate = ["investments", "debts"];
+  for (var i = 0; i < kindsToUpdate.length; i++) {
+    var p = kindsToUpdate[i];
     for (var id in next[p]) {
 	  update(next[p][id], p);
 	}
@@ -1067,14 +1069,14 @@ fillPortfolios = function(until) {
 	for (var kind in portfolios[validPortfoliosEnd][1]) {
 	  for (var id in portfolios[validPortfoliosEnd][1][kind]) {
 	    if (portfolios[validPortfoliosEnd][1][kind][id].ranOut) {
-		  autoMods[id].date = portfolios[validPortfoliosEnd][0];
+		  autoMods[id].date = new Date(date);
 		  applyMod(portfolios[validPortfoliosEnd][1], autoMods[id].mod); // TODO CAN THESE BE DOUBLE-APPLIED WITH MODS BELOW?
 		  foundAutoMods[id] = true;
 		}
 	  }
 	}
 	var next = nextMonth(new Date(date));
-	for (; mods_idx < allMods.length && allMods[mods_idx][0] <= next; mods_idx++) {
+	for (; mods_idx < allMods.length && allMods[mods_idx][0] <= date; mods_idx++) {
 	  applyMod(portfolios[validPortfoliosEnd][1], allMods[mods_idx][1]);
 	}
 	validPortfoliosEnd++;
@@ -1088,9 +1090,11 @@ fillPortfolios = function(until) {
 fillPortfolios(end);
 
 getPortfolio = function(date) {
-  fillPortfolios(date);
+  var fillDate = new Date(date);
+  fillDate.setMonth(date.getMonth()+1);
+  fillPortfolios(fillDate);
   for (var i = 0; i < portfolios.length - 1; i++) {
-    if (portfolios[i][0] <= date && portfolios[i+1][0] > date) {
+    if (portfolios[i][0] >= date) {
       return portfolios[i];
     }
   }
