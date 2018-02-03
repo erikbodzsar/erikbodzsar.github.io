@@ -77,9 +77,15 @@ createMod = function() {
   };
 }
 
+createAutoMod = function() {
+  var mod = createMod();
+  mod.auto = true;
+  return mod;
+}
+
 createInvestment = function(name, monthly, start, interest, useAsCash, funding) {
   var id = nextId();
-  var autoMod = createMod();
+  var autoMod = createAutoMod();
   autoMod.name = name + " runs out";
   autoMods[id] = { mod: autoMod };
   return [id, {
@@ -94,7 +100,7 @@ createInvestment = function(name, monthly, start, interest, useAsCash, funding) 
 
 createDebt = function(name, monthly, start, interest, useAsCash, funding) {
   var id = nextId();
-  var autoMod = createMod();
+  var autoMod = createAutoMod();
   autoMod.name = name + " paid off";
   autoMods[id] = { mod: autoMod };
   return [id, {
@@ -380,7 +386,7 @@ portfolio.investments[nextIdTmp++] = {
   funding: 500,
 };
 
-autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1] = { mod: createAutoMod() };
 autoMods[nextIdTmp-1].mod.name = "401k runs out";
 
 portfolio.investments[nextIdTmp++] = {
@@ -391,7 +397,7 @@ portfolio.investments[nextIdTmp++] = {
   funding: 0,
 };
 
-autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1] = { mod: createAutoMod() };
 autoMods[nextIdTmp-1].mod.name = "savings account runs out";
 
 portfolios = [[start, portfolio]];
@@ -437,7 +443,7 @@ mods.push([new Date(2030, 0, 1), {
   }],
 }]);
 
-autoMods[nextIdTmp-1] = { mod: createMod() };
+autoMods[nextIdTmp-1] = { mod: createAutoMod() };
 autoMods[nextIdTmp-1].mod.name = "mortgage paid off";
 
 // TODO xxx Create* methods that automatically add autoMod
@@ -1031,7 +1037,7 @@ fillModsTable = function() {
   newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => componentHandler.upgradeElement(x));
  
   var newHeaders = newModContainers.select(".portfolioHeader");
-  newHeaders.select(".modName").select("input").attr("disabled", null).on("input", function() {
+  newHeaders.select(".modName").select("input").on("input", function() {
 	var mod = d3.select(ancestor(this, 4)).datum();
 	mod[1].name = d3.select(this).node().value;
 	refresh();
@@ -1075,12 +1081,14 @@ fillModsTable = function() {
   allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
-  allHeaders.select(".disableMod").attr("onclick", (d,i) => "disableMod("+i+")");
-  allHeaders.select(".removeMod").attr("onclick", (d,i) => "removeMod("+i+")");
+  allHeaders.select(".disableMod").attr("onclick", (d,i) => "disableMod("+i+")").attr("style", d => 'auto' in d[1] ? "display: none" : null);
+  allHeaders.select(".removeMod").attr("onclick", (d,i) => "removeMod("+i+")").attr("style", d => 'auto' in d[1] ? "display: none" : null);
   allHeaders.select(".modName").select("input").attr("value", d => d[1].name);
   allHeaders.select(".modName").select("input").property("value", d => d[1].name);
+  allHeaders.select(".modName").select("input").attr("disabled", d => 'auto' in d[1] ? "" : null);
   allHeaders.select(".modDate").attr("value", d => yyyyMmDd(d[0]));
   allHeaders.select(".modDate").property("value", d => yyyyMmDd(d[0]));
+  allHeaders.select(".modDate").attr("disabled", d => 'auto' in d[1] ? "" : null);
   portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
     false,
     function(mod, kind, id, property, value) {
