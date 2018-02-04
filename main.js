@@ -464,7 +464,7 @@ mods.push([new Date(2050, 0, 1), {
   new_debt: [],
 }]);
 
-current_version = 4;
+current_version = 5;
 
 createURLParam = function() {
   var json = JSON.stringify([current_version,portfolios[0],mods,autoMods]);
@@ -520,6 +520,12 @@ parse = function(version, data) {
 	  }
 	}
 	parse(4, [4, oldPortfolios, oldMods, oldAutoMods]);
+  } else if (version == 4) {
+    var oldPortfolios = data[1];
+	var oldMods = data[2];
+	var oldAutoMods = data[3];
+    for (var id in oldAutoMods) oldAutoMods[id].mod.auto = true;
+	parse(5, [5, oldPortfolios, oldMods, oldAutoMods]);
   } else if (version == current_version) {
     portfolios = [data[1]];
 	mods = data[2];
