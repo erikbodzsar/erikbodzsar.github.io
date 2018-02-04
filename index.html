@@ -14,6 +14,7 @@ TODO:
  chart overlay going off the chart on left
  store state in cookie
  fix date modifications: mod reordering!!!: if a date gets reordered with another one date buttons get messed up
+ dates not showing up on ipad
 
  remove investment/debt after it runs out
  total and +/- on summaries!
@@ -63,11 +64,12 @@ TODO:
 	  top: 0px;
 	  z-index: 5;
 	  background-color: #FAFAFA;
+	  height: 15em;
 	}
 
 	#chart {
 	  width: 100%;
-	  height: 15em;
+	  height: 100%;
 	}
 	
 	#mouseTimeLine {
@@ -226,7 +228,7 @@ TODO:
   </style>
 </head>
 
-<body onresize="init(); refresh()">
+<body onload="init(); refresh()">
 
 
 <div class="mdl-layout mdl-js-layout">
