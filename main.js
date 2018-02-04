@@ -997,24 +997,23 @@ addNewMod = function() {
   refresh();
 }
 
-removeMod = function(idx) {
+removeMod = function(element) {
   if (!confirm("Remove life event?")) return;
-  mods.splice(idx, 1);
-  if (idx > 0) {
-    clearPortfoliosAfter(mods[idx-1][0]);
-  } else {
-    validPortfoliosEnd = 1;
+  var mod = d3.select(element).datum();
+  var idx;
+  for (idx = 0; idx < mods.length; idx++) {
+    if (mods[idx] === mod) break;
   }
+  mods.splice(idx, 1);
+  clearPortfoliosAfter(mod[0]);
   refresh();
 }
 
-disableMod = function(idx) {
-  mods[idx][1].disabled = !mods[idx][1].disabled;
-  if (idx > 0) {
-    clearPortfoliosAfter(mods[idx-1][0]);
-  } else {
-    validPortfoliosEnd = 1;
-  }
+disableMod = function(element) {
+  var mod = d3.select(element).datum();
+  console.log(mod);
+  mod[1].disabled = !mod[1].disabled;
+  clearPortfoliosAfter(mod[0]);
   refresh();
 }
 
@@ -1046,9 +1045,8 @@ fillModsTable = function() {
   newHeaders.select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
 
   var headerButtons = newHeaders.append("div").attr("style", "position: absolute; top: 5px; right: 5px");
-  headerButtons.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("power_settings_new");
-  headerButtons.append("div").attr("style", "float: right; width: 0.5em; min-height: 1px");
-  headerButtons.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").attr("style", "float: right").append("i").attr("class", "material-icons").html("delete");
+  headerButtons.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").append("i").attr("class", "material-icons").html("power_settings_new");
+  headerButtons.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").append("i").attr("class", "material-icons").html("delete");
 
   newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
@@ -1081,8 +1079,8 @@ fillModsTable = function() {
   allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
   allModContainers.attr("data-idx", (d,i) => i);
   var allHeaders = allModContainers.select(".portfolioHeader");
-  allHeaders.select(".disableMod").attr("onclick", (d,i) => "disableMod("+i+")").attr("style", d => 'auto' in d[1] ? "display: none" : null);
-  allHeaders.select(".removeMod").attr("onclick", (d,i) => "removeMod("+i+")").attr("style", d => 'auto' in d[1] ? "display: none" : null);
+  allHeaders.select(".disableMod").attr("onclick", "disableMod(this)").attr("style", d => "margin-right: 0.5em; " + ('auto' in d[1] ? "display: none" : ""));
+  allHeaders.select(".removeMod").attr("onclick", "removeMod(this)").attr("style", d => 'auto' in d[1] ? "display: none" : null);
   allHeaders.select(".modName").select("input").attr("value", d => d[1].name);
   allHeaders.select(".modName").select("input").property("value", d => d[1].name);
   allHeaders.select(".modName").select("input").attr("disabled", d => 'auto' in d[1] ? "" : null);
