@@ -4,14 +4,35 @@ max = function(a,b) { return a > b ? a : b; }
 min = function(a,b) { return a < b ? a : b; }
 roundToCents = function(x) { return Math.floor(x*100)/100.0; }
 
+end = new Date(2080, 0, 1);
+
+yyyyMmDd = function(date) {
+  var pad = x => x < 10 ? ("0" + x) : ("" + x);
+  return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+}
+
 setUpInitialPortfolio = function() {
   d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
-  <!-- TODO WHY DONT THESE NEED UPGRADE?! IS MDL INIT AFTER THESE ARE FILLED IN? -->
+  /* TODO WHY DONT THESE NEED UPGRADE?! IS MDL INIT AFTER THESE ARE FILLED IN? */
   d3.select("#initial").select(".portfolioHeader").select(".mdl-textfield").attr("class", "modName mdl-textfield mdl-js-textfield");
   d3.select("#initial").select(".portfolioBody").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
   d3.select("#initial").select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
+  d3.select("#initial").select(".modDate").on("input", function() {
+	  var mod = d3.select(ancestor(this, 3)).datum();
+      var dateInputValue = d3.select(this).node().value.split("-");
+      var y,m,d;
+      [y,m,d] = dateInputValue;
+      if (isNaN(y) || isNaN(m) || isNaN(d)) return;
+      var date = new Date(y,m-1,d);
+	  // TODO handle if after some mods
+	  portfolios[0][0] = date;
+	  validPortfoliosEnd = 1;
+	  portfolios.length = 1;
+	  refresh();
+    });
+  d3.select("#initial").select(".modDate").attr("value", yyyyMmDd(portfolios[0][0]));
+  d3.select("#initial").select(".modDate").property("value", yyyyMmDd(portfolios[0][0]));
 }
-setUpInitialPortfolio();
 
 mouseX = 0;
 mouseY = 0;
@@ -280,9 +301,6 @@ initSlider = function(slider, begin, end, values, callback) {
 
 stacked = true;
 
-start = new Date(2018, 0, 1);
-end = new Date(2080, 0, 1);
-
 chartXPadding = 10;
 chartYPadding = 10;
 
@@ -292,7 +310,7 @@ yScale = d3.scaleLinear()
       .domain([80000.0, 5000000.0])
       .range([boundingRect.height-chartYPadding, 0]);
 xScale = d3.scaleTime()
-        .domain([start, end])
+        .domain([new Date(), end])
         .range([chartXPadding, boundingRect.width]);
 }
 init();
@@ -342,7 +360,6 @@ bodyMouseMove = function() {
 d3.select("body").on("mousemove", bodyMouseMove);
 d3.select("#chart").on("mousemove", mouseMove);
 
-//colors = ["green", "red", "blue", "orange", "yellow", "purple", "pink", "black", "aqua", "teal", "brown"];
 colors = ["#FFE0B2", "#FFB74D", "#FF9800", "#F57C00", "#E65100", "#BF360C"];
 
 nextIdTmp = 1;
@@ -400,7 +417,7 @@ portfolio.investments[nextIdTmp++] = {
 autoMods[nextIdTmp-1] = { mod: createAutoMod() };
 autoMods[nextIdTmp-1].mod.name = "savings account runs out";
 
-portfolios = [[start, portfolio]];
+portfolios = [[new Date(), portfolio]];
 
 getId = function(name, portfolio) {
   for (var p in portfolio) {
@@ -463,6 +480,8 @@ mods.push([new Date(2050, 0, 1), {
   new_investment: [],
   new_debt: [],
 }]);
+
+setUpInitialPortfolio();
 
 current_version = 5;
 
@@ -1023,11 +1042,6 @@ disableMod = function(element) {
   refresh();
 }
 
-yyyyMmDd = function(date) {
-  var pad = x => x < 10 ? ("0" + x) : ("" + x);
-  return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
-}
-
 fillModsTable = function() {
   var allMods = getAllMods();
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").data(allMods);
@@ -1054,7 +1068,7 @@ fillModsTable = function() {
   headerButtons.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").append("i").attr("class", "material-icons").html("power_settings_new");
   headerButtons.append("button").attr("class", "removeMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").append("i").attr("class", "material-icons").html("delete");
 
-  newHeaders.append("div").append("input").attr("type", "date").attr("class", "modDate").on("input", function() {
+  newHeaders.select(".modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
       var y,m,d;
@@ -1209,6 +1223,7 @@ fillModsTable();
 refreshChart = function() {
 fillPortfolios(end);
 var chart = d3.select("#chart").select("#mainChart");
+xScale.domain([portfolios[0][0], end]);
 
 var lineValuesMap = {};
 var maxId = nextId();
@@ -1234,9 +1249,9 @@ for (var i = 0; i < mods.length; i++) {
 }
 
 var linePointsToRender = 100;
-var incMillis = (end.getTime() - start.getTime()) / linePointsToRender;
+var incMillis = (end.getTime() - portfolios[0][0].getTime()) / linePointsToRender;
 var datesToRender = [];
-for (var millis = start.getTime(); millis < end.getTime(); millis += incMillis) {
+for (var millis = portfolios[0][0].getTime(); millis < end.getTime(); millis += incMillis) {
   datesToRender.push(new Date(millis));
 }
 datesToRender.push(new Date(end));
@@ -1322,8 +1337,8 @@ var maxValue = 0.0;
   areas.exit().remove();
 
 var xTicks = [];
-var yearIncrement = max(Math.floor((end.getFullYear() - start.getFullYear()) / 10), 1);
-for (var year = start.getFullYear() + 1; year < end.getFullYear(); year+=yearIncrement) {
+var yearIncrement = max(Math.floor((end.getFullYear() - portfolios[0][0].getFullYear()) / 10), 1);
+for (var year = portfolios[0][0].getFullYear() + 1; year < end.getFullYear(); year+=yearIncrement) {
   xTicks.push(new Date(year, 0, 1));
 }
 var yTickDistance = (maxValue - minValue) / 5;
