@@ -1327,8 +1327,12 @@ var yTickDistanceRounded = Math.pow(10, Math.round(Math.log(yTickDistance) / Mat
 var yTickDistanceFinal = yTickDistanceRounded;
 if (Math.abs(yTickDistanceFinal / 2.0 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
    yTickDistanceFinal = yTickDistanceFinal / 2.0;
+} else if (Math.abs(yTickDistanceFinal * 2 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
+   yTickDistanceFinal = yTickDistanceFinal * 2;
 } else if (Math.abs(yTickDistanceFinal * 5 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
    yTickDistanceFinal = yTickDistanceFinal * 5;
+} else if (Math.abs(yTickDistanceFinal / 5 - yTickDistance) < Math.abs(yTickDistanceFinal - yTickDistance)) {
+   yTickDistanceFinal = yTickDistanceFinal / 5;
 }
 var yTicks = [];
 for (var v = minValue + yTickDistanceFinal; v < maxValue; v += yTickDistanceFinal) {
