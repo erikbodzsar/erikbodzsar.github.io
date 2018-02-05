@@ -6,6 +6,17 @@ roundToCents = function(x) { return Math.floor(x*100)/100.0; }
 
 end = new Date(2080, 0, 1);
 
+decEndDate = function() {
+  if (end.getFullYear() < portfolios[0][0].getFullYear() + 15) return;
+  end.setFullYear(end.getFullYear()-10);
+  refresh();
+}
+
+incEndDate = function() {
+  end.setFullYear(end.getFullYear()+10);
+  refresh();
+}
+
 yyyyMmDd = function(date) {
   var pad = function(x) { return x < 10 ? ("0" + x) : ("" + x); };
   return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
@@ -1358,11 +1369,6 @@ var maxValue = 0.0;
   allAreas.attr("d", area).attr("stroke", function(d,i) { return colors[i]; }).attr("fill", function(d,i) { return colors[i]; });
   areas.exit().remove();
 
-var xTicks = [];
-var yearIncrement = max(Math.floor((end.getFullYear() - portfolios[0][0].getFullYear()) / 10), 1);
-for (var year = portfolios[0][0].getFullYear() + 1; year < end.getFullYear(); year+=yearIncrement) {
-  xTicks.push(new Date(year, 0, 1));
-}
 var yTickDistance = (maxValue - minValue) / 5;
 var yTickDistanceRounded = Math.pow(10, Math.round(Math.log(yTickDistance) / Math.log(10)));
 var yTickDistanceFinal = yTickDistanceRounded;
@@ -1381,15 +1387,20 @@ for (var v = minValue + yTickDistanceFinal; v < maxValue; v += yTickDistanceFina
   if (t == 0) continue;
   yTicks.push(t);
 }
-chart.selectAll(".axis").remove();
-chart.append("g")
+var chartMods = d3.select("#chartMods");
+chartMods.selectAll(".axis").remove();
+chartMods.append("g")
     .attr("class", "axis")
     .attr("transform", "translate("+chartXPadding+",0)")
     .call(d3.axisRight(yScale).tickValues(yTicks).tickSizeOuter(0));
-chart.append("g")
+var xAxis = chartMods.append("g")
     .attr("class", "axis")
     .attr("transform", "translate(0,"+(yScale(0))+")")
-    .call(d3.axisTop(xScale).tickValues(xTicks));
+    .call(d3.axisTop(xScale)/*.tickValues(xTicks)*/);
+   xAxis.node().removeChild(xAxis.node().lastChild);
+   xAxis.node().removeChild(xAxis.node().children.item(xAxis.node().children.length-2));
+   var lastText = d3.select(xAxis.select(".tick").node().parentNode.lastChild).select("text");
+   lastText.html("<a href=\"javascript:decEndDate();\"><<</a> " + lastText.html() + " <a href=\"javascript:incEndDate();\">>></a>");
    
    var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(getAllMods());
    chartMods.exit().remove();
