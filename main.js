@@ -1388,7 +1388,7 @@ var xAxis = chartMods.append("g")
    xAxis.node().removeChild(xAxis.node().lastChild);
    xAxis.node().removeChild(xAxis.node().children.item(xAxis.node().children.length-2));
    var lastText = d3.select(xAxis.select(".tick").node().parentNode.lastChild).select("text");
-   lastText.html("<a href=\"javascript:decEndDate();\"><<</a> " + lastText.html() + " <a href=\"javascript:incEndDate();\">>></a>");
+   lastText.html("<a href=\"javascript:decEndDate();\" cursor=\"pointer\"><<</a> " + lastText.html() + " <a href=\"javascript:incEndDate();\" cursor=\"pointer\">>></a>");
    
    var chartMods = d3.select("#chartMods").selectAll(".chartMod").data(getAllMods());
    chartMods.exit().remove();

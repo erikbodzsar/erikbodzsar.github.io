@@ -13,7 +13,9 @@ TODO:
  store state in cookie
  fix date modifications: mod reordering!!!: if a date gets reordered with another one date buttons get messed up
  dates not showing up on ipad
+ fix chart text overlap issues!
 
+ dont make end date tick jump around when end date is adjusted!
  remove investment/debt after it runs out
  total and +/- on summaries!
  cash out investments etc.
@@ -301,7 +303,6 @@ Add as many more life events as you’d like!
 <div class="mods"></div>
 
 <input type="button" id="addNewMod" value="Add new life event" onclick="addNewMod()">
-<input type="date" id="changeEndDate" value="2030-01-01" oninput="changeEndDate()">
 	
 	</div>
   </main>
@@ -354,17 +355,6 @@ Add as many more life events as you’d like!
     <div class="debtsOuterContainer outerContainer"><details><summary><span>Debts</span></summary><div class="debtsContainer"></div><button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored newDebt" onclick="addNewDebt(this)"><i class="material-icons">add</i></button></details></div>
   </div>
 </div>
-
-
-<!--
-<form name="new_investment" onSubmit="newInvestment()">
-            <input type="text" id="name" placeholder="Name"><br>
-            <input type="initial" id="initial" placeholder="Initial value"><br>
-            <input type="monthly +/-" id="monthly" placeholder="Monthly +/0"><br>
-            <input type="monthly rate" id="rate" placeholder="Monthly rate"><br>
-            <input name="Submit"  type="submit" value="Add" >
-</form>
--->
 
 </body>
 </html>
