@@ -501,7 +501,7 @@ createURLParam = function() {
 createURL = function() {
   return window.location.origin + window.location.pathname + "?data=" + createURLParam();
 }
-dateFormat = new RegExp('^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$');
+dateFormat = new RegExp('^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$');
 parseDate = function(key, value) {
     if (typeof value === "string" && dateFormat.test(value)) {
         return new Date(value);
@@ -564,16 +564,14 @@ initFromURLParam = function() {
   var dataStrIndex = location.href.indexOf("data=");
   if (dataStrIndex == -1) return;
   var encoded = location.href.substring(dataStrIndex+"data=".length, location.href.length);
-  if (encoded != null) {
-    var data = JSON.parse(atob(encoded), parseDate);
-	var version;
-	if (data.length == 0) {
-	  version = 0;
-	} else {
-	  version = data[0];
-	}
-	parse(version, data);
+  var data = JSON.parse(atob(encoded), parseDate);
+  var version;
+  if (data.length == 0) {
+    version = 0;
+  } else {
+    version = data[0];
   }
+  parse(version, data);
 }
 initFromURLParam();
 urlClick = function() {
