@@ -64,18 +64,6 @@ onPortfolioExpand = function(e) {
   }
 }
 
-changeEndDate = function() {
-  var dateInputValue = d3.select("#changeEndDate").node().value.split("-");
-  var y,m,d;
-  [y,m,d] = dateInputValue;
-  if (isNaN(y) || isNaN(m) || isNaN(d)) return;
-  var date = new Date(y,m-1,d);
-  end = date;
-  clearPortfoliosAfter(end);
-  init();
-  refresh();
-}
-
 nextId = function() {
   var maxId = 0;
   var p = portfolios[0][1];
