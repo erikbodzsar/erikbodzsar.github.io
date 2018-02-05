@@ -7,16 +7,21 @@ roundToCents = function(x) { return Math.floor(x*100)/100.0; }
 end = new Date(2080, 0, 1);
 
 yyyyMmDd = function(date) {
-  var pad = x => x < 10 ? ("0" + x) : ("" + x);
+  var pad = function(x) { return x < 10 ? ("0" + x) : ("" + x); };
   return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
 }
 
+upgradeNodes = function(selection) {
+  selection.nodes().forEach(function(x) { componentHandler.upgradeElement(x); });
+  return selection;
+}
+
 setUpInitialPortfolio = function() {
-  d3.select("#initialContainer").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", "initial");
+  d3.select("#initialContainer").append(function() { return d3.select("#portfolioTemplate").node().cloneNode(true); }).attr("id", "initial");
   /* TODO WHY DONT THESE NEED UPGRADE?! IS MDL INIT AFTER THESE ARE FILLED IN? */
   d3.select("#initial").select(".portfolioHeader").select(".mdl-textfield").attr("class", "modName mdl-textfield mdl-js-textfield");
   d3.select("#initial").select(".portfolioBody").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label");
-  d3.select("#initial").select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
+  upgradeNodes(d3.select("#initial").select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab"));
   d3.select("#initial").select(".modDate").on("input", function() {
 	  var mod = d3.select(ancestor(this, 3)).datum();
       var dateInputValue = d3.select(this).node().value.split("-");
@@ -175,14 +180,18 @@ addNewExpense = function(elem) {
 }
 
 addNewInvestment = function(elem) {
-  var [id, investment] = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
+  var idAndInv = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
+  var id = idAndInv[0];
+  var investment = idAndInv[1];
   portfolios[0][1].investments[id] = investment;
   validPortfoliosEnd = 1;
   refresh();
 }
 
 addNewDebt = function(elem) {
-  var [id, debt] = createDebt("new debt", 0, 1000, 0.01/12, false, 0);
+  var idAndDebt = createDebt("new debt", 0, 1000, 0.01/12, false, 0);
+  var id = idAndDebt[0];
+  var debt = idAndDebt[1];
   portfolios[0][1].debts[id] = debt;
   validPortfoliosEnd = 1;
   refresh();
@@ -214,16 +223,16 @@ addNewExpenseMod = function(elem) {
 
 addNewInvestmentMod = function(elem) {
   var mod = d3.select(ancestor(elem, 4)).datum();
-  var [id, investment] = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
-  mod[1].new_investment.push({id: id, investment: investment});
+  var idAndInv = createInvestment("new investment", 0, 1000, 0.01/12, false, 0);
+  mod[1].new_investment.push({id: idAndInv[0], investment: idAndInv[1]});
   clearPortfoliosAfter(mod[0]);
   refresh();
 }
 
 addNewDebtMod = function(elem) {
   var mod = d3.select(ancestor(elem, 4)).datum();
-  var [id, debt] = createInvestment("new debt", 0, 1000, 0.01/12, false, 0);
-  mod[1].new_debt.push({id: id, debt: debt});
+  var idAndDebt = createInvestment("new debt", 0, 1000, 0.01/12, false, 0);
+  mod[1].new_debt.push({id: idAndDebt[0], debt: idAndDebt[1]});
   clearPortfoliosAfter(mod[0]);
   refresh();
 }
@@ -250,6 +259,7 @@ initSlider0 = function(slider) {
   slider.append("rect").attr("width", width).attr("height", height).attr("style", "stroke:rgb(0,0,0);stroke-width:2;fill:rgb(255,255,255)");
 }
 
+/*
 // elem is a svg g
 initSlider = function(slider, begin, end, values, callback) {
   var width = 400;
@@ -298,8 +308,7 @@ initSlider = function(slider, begin, end, values, callback) {
         	  }))
       .exit().remove();
 }
-
-stacked = true;
+*/
 
 chartXPadding = 10;
 chartYPadding = 10;
@@ -492,7 +501,7 @@ createURLParam = function() {
 createURL = function() {
   return window.location.origin + window.location.pathname + "?data=" + createURLParam();
 }
-const dateFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+dateFormat = new RegExp('^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$');
 parseDate = function(key, value) {
     if (typeof value === "string" && dateFormat.test(value)) {
         return new Date(value);
@@ -552,8 +561,9 @@ parse = function(version, data) {
   }
 }
 initFromURLParam = function() {
-  var params = new URLSearchParams(window.location.search);
-  var encoded = params.get("data");
+  var dataStrIndex = location.href.indexOf("data=");
+  if (dataStrIndex == -1) return;
+  var encoded = location.href.substring(dataStrIndex+"data=".length, location.href.length);
   if (encoded != null) {
     var data = JSON.parse(atob(encoded), parseDate);
 	var version;
@@ -577,16 +587,31 @@ hideUrl = function() {
   d3.select("#shareUrl").attr("style", "opacity: 0; width: 1px");
 }
 
+assign = function(to, from) {
+  for (var p in from) {
+    to[p] = from[p];
+  }
+  return to;
+}
+
+entries = function(o) {
+  var e = [];
+  for (var p in o) {
+    e.push([p, o[p]]);
+  }
+  return e;
+}
+
 applyMod = function(portfolio, mod) {
   if (mod.disabled) return;
-  mod.change_income.map(x => { Object.assign(portfolio.incomes[x.id], x.income); portfolio.incomes[x.id].hasMod = true; } );
-  mod.change_expense.map(x => { Object.assign(portfolio.expenses[x.id], x.expense); portfolio.expenses[x.id].hasMod = true; });
-  mod.change_investment.map(x => { Object.assign(portfolio.investments[x.id], x.investment); portfolio.investments[x.id].hasMod = true; });
-  mod.change_debt.map(x => { Object.assign(portfolio.debts[x.id], x.debt); portfolio.debts[x.id].hasMod = true; });
-  mod.new_expense.map(x => { portfolio.expenses[x.id] = x.expense; portfolio.expenses[x.id].isNew = true; });
-  mod.new_income.map(x => { portfolio.incomes[x.id] = x.income; portfolio.incomes[x.id].isNew = true; });
-  mod.new_investment.map(x => { portfolio.investments[x.id] = x.investment; portfolio.investments[x.id].isNew = true; });
-  mod.new_debt.map(x => { portfolio.debts[x.id] = x.debt; portfolio.debts[x.id].isNew = true; });
+  mod.change_income.map(function(x) { assign(portfolio.incomes[x.id], x.income); portfolio.incomes[x.id].hasMod = true; } );
+  mod.change_expense.map(function(x) { assign(portfolio.expenses[x.id], x.expense); portfolio.expenses[x.id].hasMod = true; });
+  mod.change_investment.map(function(x) { assign(portfolio.investments[x.id], x.investment); portfolio.investments[x.id].hasMod = true; });
+  mod.change_debt.map(function(x) { assign(portfolio.debts[x.id], x.debt); portfolio.debts[x.id].hasMod = true; });
+  mod.new_expense.map(function(x) { portfolio.expenses[x.id] = x.expense; portfolio.expenses[x.id].isNew = true; });
+  mod.new_income.map(function(x) { portfolio.incomes[x.id] = x.income; portfolio.incomes[x.id].isNew = true; });
+  mod.new_investment.map(function(x) { portfolio.investments[x.id] = x.investment; portfolio.investments[x.id].isNew = true; });
+  mod.new_debt.map(function(x) { portfolio.debts[x.id] = x.debt; portfolio.debts[x.id].isNew = true; });
 }
 
 // returns overall monthly +/-
@@ -617,7 +642,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
   var copy = function(x) {
     var c = {};
 	for (var id in x) {
-      c[id] = Object.assign({}, x[id]);
+      c[id] = assign({}, x[id]);
 	  c[id].isNew = false;
 	  c[id].hasMod = false;
 	  c[id].ranOut = false;
@@ -626,7 +651,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
   }
   var b = balance(portfolio);
   var next = nextPortfolio;
-  Object.assign(next, {
+  assign(next, {
     cash: portfolio.cash,
     investments: copy(portfolio.investments),
     debts: copy(portfolio.debts),
@@ -764,7 +789,7 @@ fillBreakdown = function(date) {
   values[0][1] = total;
   // TODO: cash, debts
   var breakdownValues = d3.select(".breakdown").selectAll(".breakdownValue").data(values);
-  breakdownValues.text(d => d[0] + ": " + Math.round(d[1]));
+  breakdownValues.text(function(d) { return d[0] + ": " + Math.round(d[1]); });
   breakdownValues.enter().append("div").attr("class", "breakdownValue");
   breakdownValues.exit().remove();
 }
@@ -797,7 +822,7 @@ removeModsForId = function(id) {
 fillInitialTable = function() {
   var initialPortfolio = d3.select("#initial").select(".portfolioBody");
   initialPortfolio.datum(portfolios[0]);
-  portfolioTable(initialPortfolio, x => x, true,
+  portfolioTable(initialPortfolio, function(x) { return x; }, true,
       function(data, kind, id, property, value) {
         data[1][kind][id][property] = value;
         validPortfoliosEnd = 1;
@@ -810,7 +835,7 @@ fillInitialTable = function() {
         validPortfoliosEnd = 1;
 		refresh();
 	  },
-	  () => {}
+	  function() {}
   );
 }
 
@@ -828,8 +853,8 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
   if (!isInitial) {
     cash.attr("disabled", "");
   }
-  cash.attr("value", d => getPortfolioFn(d)[1].cash);
-  cash.property("value", d => getPortfolioFn(d)[1].cash);
+  cash.attr("value", function(d) { return getPortfolioFn(d)[1].cash; });
+  cash.property("value", function(d) { return getPortfolioFn(d)[1].cash; });
   
   var isNumeric = function(property) {
     if (property == "name") return false;
@@ -863,7 +888,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 		.attr("id", idFn)
 		.attr("size", property == 'name' ? "20" : "9")
 		.attr("class", inputClass + " mdl-textfield__input");
-    inputDiv.append("label").attr("class", "mdl-textfield__label").attr("for", idFn).text(property).nodes().forEach(x => componentHandler.upgradeElement(x));
+    upgradeNodes(inputDiv.append("label").attr("class", "mdl-textfield__label").attr("for", idFn).text(property));
 
     var disabled = function(d) {
 	  if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return true;
@@ -871,18 +896,18 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	  return true;
 	};
 	allContainers.select("." + inputClass).merge(input)
-		.attr("value", d => printProperty(property, d))
-		.property("value", d => printProperty(property, d))
-		.attr("disabled", d => disabled(d) ? "" : null);
-	inputDiv.nodes().forEach(x => componentHandler.upgradeElement(x) );
+		.attr("value",function(d) { return printProperty(property, d); })
+		.property("value", function(d) { return printProperty(property, d); })
+		.attr("disabled", function(d) { return disabled(d) ? "" : null; });
+	upgradeNodes(inputDiv);
   };
   var incomeList = ["incomes", "expenses"];
   for (var idx in incomeList) {
     var kind = incomeList[idx];
     var currentContainer = container.select("."+kind+"Container");
-    var incomes = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
+    var incomes = currentContainer.selectAll("." + kind).data(function(d) { return entries(getPortfolioFn(d)[1][kind]); });
 	incomes.exit().remove();
-	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-kind", () => kind).attr("style", "position: relative");
+	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-kind", kind).attr("style", "position: relative");
 	var buttons = newIncomes.append("div").attr("style", "position: absolute; top: 2px; right: 2px; z-index: 2");
 	buttons.append("button")  
 		.attr("class", "undoModsButton mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
@@ -898,7 +923,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
 		.on("click", function() { deleteCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
 		.append("i").attr("class", "material-icons").html("delete");
-    newIncomes.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
+    upgradeNodes(newIncomes.select(".mdl-button"));
     var allIncomes = newIncomes.merge(incomes);
 	allIncomes.select(".undoModsButton").attr("style", function(d) {
 	  var display;
@@ -906,7 +931,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	  else display = "; display: none";
 	  return "transform: scale(0.8)" + display;
 	})
-	allIncomes.attr("data-id", d => d[0]);
+	allIncomes.attr("data-id", function(d) { return d[0]; });
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
   }
@@ -915,9 +940,9 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
   for (var idx in investmentList) {
     var kind = investmentList[idx];
     var currentContainer = container.select("."+kind+"Container");
-    var investments = currentContainer.selectAll("." + kind).data(d => Object.entries(getPortfolioFn(d)[1][kind]));
+    var investments = currentContainer.selectAll("." + kind).data(function(d) { return entries(getPortfolioFn(d)[1][kind]); });
 	investments.exit().remove();
-	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", d => d[0]).attr("data-kind", () => kind).attr("style", "position: relative");
+	var newInvestments = investments.enter().append("div").attr("class", kind + " mdl-grid").attr("data-id", function(d) { return d[0]; }).attr("data-kind", kind).attr("style", "position: relative");
 	var buttons = newInvestments.append("div").attr("style", "position: absolute; top: 2px; right: 2px; z-index: 2");
 	buttons.append("button")  
 		.attr("class", "undoModsButton mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
@@ -933,7 +958,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 		.attr("class", "mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
 		.on("click", function() { deleteCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), d3.select(ancestor(this,2)).attr("data-id")); })
 		.append("i").attr("class", "material-icons").html("delete");
-    newInvestments.select(".mdl-button").nodes().forEach(x => componentHandler.upgradeElement(x));
+    upgradeNodes(newInvestments.select(".mdl-button"));
     var allInvestments = newInvestments.merge(investments);
 	allInvestments.select(".undoModsButton").attr("style", function(d) {
 	  var display;
@@ -959,7 +984,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 		.attr("class", "mdl-checkbox__input coverExpenses")
 		.on("click", function() { propertyCb(d3.select(ancestor(this, 6)).datum(), d3.select(ancestor(this,2)).attr("data-kind"), Number(d3.select(ancestor(this,2)).attr("data-id")), "useAsCash", this.checked); });
 	newCoverExpenses.append("span").attr("class", "mdl-checkbox__label").text("Cover expenses from this account?");
-	newCoverExpenses.nodes().forEach(x => componentHandler.upgradeElement(x));
+	upgradeNodes(newCoverExpenses);
 	allInvestments.select(".coverExpenses").attr("checked", function(d) { d[1].useAsCash ? this.parentNode.MaterialCheckbox.check() : this.parentNode.MaterialCheckbox.uncheck(); return d[1].useAsCash ? "" : null; });
   }
 }
@@ -1036,7 +1061,6 @@ removeMod = function(element) {
 
 disableMod = function(element) {
   var mod = d3.select(element).datum();
-  console.log(mod);
   mod[1].disabled = !mod[1].disabled;
   clearPortfoliosAfter(mod[0]);
   refresh();
@@ -1046,14 +1070,14 @@ fillModsTable = function() {
   var allMods = getAllMods();
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").data(allMods);
   modContainers.exit().remove();
-  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(() => d3.select("#portfolioTemplate").node().cloneNode(true)).attr("id", null);
+  var newModContainers = modContainers.enter().append("div").attr("class", "mdl-cell mdl-cell--3-col modPortfolio  mdl-cell--4-col-tablet  mdl-cell--6-col-phone").append(function() { return d3.select("#portfolioTemplate").node().cloneNode(true); }).attr("id", null);
   newModContainers.select(".newIncome").attr("onclick", "addNewIncomeMod(this)");
   newModContainers.select(".newExpense").attr("onclick", "addNewExpenseMod(this)");
   newModContainers.select(".newInvestment").attr("onclick", "addNewInvestmentMod(this)");
   newModContainers.select(".newDebt").attr("onclick", "addNewDebtMod(this)");
-  newModContainers.select(".cashContainer").select("input").attr("id", (d,i) => "initialCash" + i).attr("value", "0");
-  newModContainers.select(".cashContainer").select("label").attr("for", (d,i) => "initialCash" + i);
-  newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label").nodes().forEach(x => componentHandler.upgradeElement(x));
+  newModContainers.select(".cashContainer").select("input").attr("id", function(d,i) { return "initialCash" + i; }).attr("value", "0");
+  newModContainers.select(".cashContainer").select("label").attr("for", function(d,i) { return "initialCash" + i; });
+  upgradeNodes(newModContainers.select(".cashContainer").select(".mdl-textfield").attr("class", "mdl-textfield mdl-js-textfield mdl-textfield--floating-label"));
  
   var newHeaders = newModContainers.select(".portfolioHeader");
   newHeaders.select(".modName").select("input").on("input", function() {
@@ -1061,8 +1085,8 @@ fillModsTable = function() {
 	mod[1].name = d3.select(this).node().value;
 	refresh();
   });
-  newHeaders.select(".modName").attr("class", "modName mdl-textfield mdl-js-textfield").nodes().forEach(x => componentHandler.upgradeElement(x));
-  newHeaders.select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab").nodes().forEach(x => componentHandler.upgradeElement(x));
+  upgradeNodes(newHeaders.select(".modName").attr("class", "modName mdl-textfield mdl-js-textfield"));
+  upgradeNodes(newHeaders.select(".mdl-button").attr("class", "portfolioExpand mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab"));
 
   var headerButtons = newHeaders.append("div").attr("style", "position: absolute; top: 5px; right: 5px");
   headerButtons.append("button").attr("class", "disableMod mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored").append("i").attr("class", "material-icons").html("power_settings_new");
@@ -1093,21 +1117,21 @@ fillModsTable = function() {
 	  refresh();
     });
 	
-  newHeaders.selectAll("button").nodes().forEach(x => componentHandler.upgradeElement(x));
+  upgradeNodes(newHeaders.selectAll("button"));
   
   var allModContainers = newModContainers.merge(modContainers);
-  allModContainers.attr("style", (d,i) => d[1].disabled ? "opacity: 0.5" : null);
-  allModContainers.attr("data-idx", (d,i) => i);
+  allModContainers.attr("style", function(d) { return d[1].disabled ? "opacity: 0.5" : null; });
+  allModContainers.attr("data-idx", function(d,i) { return i; });
   var allHeaders = allModContainers.select(".portfolioHeader");
-  allHeaders.select(".disableMod").attr("onclick", "disableMod(this)").attr("style", d => "margin-right: 0.5em; " + ('auto' in d[1] ? "display: none" : ""));
-  allHeaders.select(".removeMod").attr("onclick", "removeMod(this)").attr("style", d => 'auto' in d[1] ? "display: none" : null);
-  allHeaders.select(".modName").select("input").attr("value", d => d[1].name);
-  allHeaders.select(".modName").select("input").property("value", d => d[1].name);
-  allHeaders.select(".modName").select("input").attr("disabled", d => 'auto' in d[1] ? "" : null);
-  allHeaders.select(".modDate").attr("value", d => yyyyMmDd(d[0]));
-  allHeaders.select(".modDate").property("value", d => yyyyMmDd(d[0]));
-  allHeaders.select(".modDate").attr("disabled", d => 'auto' in d[1] ? "" : null);
-  portfolioTable(allModContainers.select(".portfolioBody"), d => getPortfolio(d[0]),
+  allHeaders.select(".disableMod").attr("onclick", "disableMod(this)").attr("style", function(d) { return "margin-right: 0.5em; " + ('auto' in d[1] ? "display: none" : ""); });
+  allHeaders.select(".removeMod").attr("onclick", "removeMod(this)").attr("style", function(d) { return 'auto' in d[1] ? "display: none" : null; });
+  allHeaders.select(".modName").select("input").attr("value", function(d) { return d[1].name; });
+  allHeaders.select(".modName").select("input").property("value", function(d) { return d[1].name; });
+  allHeaders.select(".modName").select("input").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
+  allHeaders.select(".modDate").attr("value", function(d) { return yyyyMmDd(d[0]); });
+  allHeaders.select(".modDate").property("value", function(d) { return yyyyMmDd(d[0]); });
+  allHeaders.select(".modDate").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
+  portfolioTable(allModContainers.select(".portfolioBody"), function(d) { return getPortfolio(d[0]); },
     false,
     function(mod, kind, id, property, value) {
 	  var modKind;
@@ -1258,7 +1282,7 @@ datesToRender.push(new Date(end));
 for (var i = 0; i < mods.length; i++) {
   datesToRender.push(new Date(mods[i][0]));
 }
-datesToRender.sort((a,b) => {
+datesToRender.sort(function(a,b) {
   if (a.getTime() < b.getTime()) {
     return -1;
   } else if (a.getTime() == b.getTime()) {
@@ -1296,8 +1320,8 @@ for (var i in lineValuesMap) {
     to_delete.push(i);
   }
 }
-to_delete.forEach(i => delete lineValuesMap[i]);
-var lineValues = Object.entries(lineValuesMap);
+to_delete.forEach(function(i) { delete lineValuesMap[i]; });
+var lineValues = entries(lineValuesMap);
 var minValue = 0.0;
 var maxValue = 0.0;
   var stackedValues = [];
@@ -1328,12 +1352,12 @@ var maxValue = 0.0;
   yScale.domain([minValue,maxValue]);
   var areas = chart.selectAll(".area").data(stackedValues);
   var area = d3.area()
-	  .x(v => xScale(v.date))
-	  .y0(v => yScale(v.prev))
-	  .y1(v => yScale(v.value));
+	  .x(function(v) { return xScale(v.date); })
+	  .y0(function(v) { return yScale(v.prev); })
+	  .y1(function(v) { return yScale(v.value); });
   var newAreas = areas.enter().append("path").attr("class", "area").attr("fill", "none").attr("stroke-width", 1);
   var allAreas = newAreas.merge(areas);
-  allAreas.attr("d", area).attr("stroke", (d,i) => colors[i]).attr("fill", (d,i) => colors[i]);
+  allAreas.attr("d", area).attr("stroke", function(d,i) { return colors[i]; }).attr("fill", function(d,i) { return colors[i]; });
   areas.exit().remove();
 
 var xTicks = [];
@@ -1380,9 +1404,9 @@ chart.append("g")
    newChartMods.append("text").attr("x", 0).attr("y", yAdj);
    
    var allChartMods = newChartMods.merge(chartMods);
-   allChartMods.attr("style", m => m[1].disabled ? "display:none" : null);
-   allChartMods.attr("transform", m => "translate(" + xScale(m[0]) + ", " + yScale(0) + ")");
-   allChartMods.select("text").text(m => m[1].name);
+   allChartMods.attr("style", function(m) { return m[1].disabled ? "display:none" : null; });
+   allChartMods.attr("transform", function(m) { return "translate(" + xScale(m[0]) + ", " + yScale(0) + ")"; });
+   allChartMods.select("text").text(function(m) { return m[1].name; });
 }
 
 refreshChart();
