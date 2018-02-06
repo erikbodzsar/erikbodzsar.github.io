@@ -383,21 +383,21 @@ portfolio = {
 };
 
 portfolio.incomes[nextIdTmp++] = {
-  name: "salary",
+  name: "Salary",
   monthly: 5000,
   start: 0,
   interest: 0,
 };
 
 portfolio.expenses[nextIdTmp++] = {
-  name: "living expenses",
+  name: "Living expenses",
   monthly: 2000,
   start: 0,
   interest: 0,
 };
 
 portfolio.expenses[nextIdTmp++] = {
-  name: "rent",
+  name: "Rent",
   monthly: 1500,
   start: 0,
   interest: 0,
@@ -415,7 +415,7 @@ autoMods[nextIdTmp-1] = { mod: createAutoMod() };
 autoMods[nextIdTmp-1].mod.name = "401k runs out";
 
 portfolio.investments[nextIdTmp++] = {
-  name: "savings account",
+  name: "Savings account",
   start: 50000.0,
   interest: 0.01/12,
   monthly: 1500.0,
@@ -423,7 +423,7 @@ portfolio.investments[nextIdTmp++] = {
 };
 
 autoMods[nextIdTmp-1] = { mod: createAutoMod() };
-autoMods[nextIdTmp-1].mod.name = "savings account runs out";
+autoMods[nextIdTmp-1].mod.name = "Savings account runs out";
 
 portfolios = [[new Date(), portfolio]];
 
@@ -438,20 +438,20 @@ getId = function(name, portfolio) {
 mods = [];
 
 mods.push([new Date(2030, 0, 1), {
-  name: "buy a home",
+  name: "Buy a house",
   disabled: false,
   change_income: [],
   change_investment: [
     {id: getId("401k", portfolio), investment: { monthly: 0}},
-    {id: getId("savings account", portfolio), investment: { monthly: 0 }},
+    {id: getId("Savings account", portfolio), investment: { monthly: 0 }},
   ],
-  change_expense: [{id: getId("rent", portfolio), expense: { monthly: 0 }}],
+  change_expense: [{id: getId("Rent", portfolio), expense: { monthly: 0 }}],
   change_debt: [],
   new_income: [],
   new_expense: [{
     id: nextIdTmp++,
 	expense: {
-      name: "home maintenance",
+      name: "Home maintenance",
       monthly: 500,
       start: 0,
       interest: 0.00/12,
@@ -460,7 +460,7 @@ mods.push([new Date(2030, 0, 1), {
   new_debt: [{
     id: nextIdTmp++,
     debt: {
-      name: "mortgage",
+      name: "Mortgage",
       monthly: 3000,
       start: -200000,
       interest: 0.00/12,
@@ -469,17 +469,17 @@ mods.push([new Date(2030, 0, 1), {
 }]);
 
 autoMods[nextIdTmp-1] = { mod: createAutoMod() };
-autoMods[nextIdTmp-1].mod.name = "mortgage paid off";
+autoMods[nextIdTmp-1].mod.name = "Mortgage paid off";
 
 // TODO xxx Create* methods that automatically add autoMod
 
 mods.push([new Date(2050, 0, 1), {
-  name: "retirement",
+  name: "Retire",
   disabled: false,
-  change_income: [{id: getId("salary", portfolio), income: { monthly: 0 }}],
+  change_income: [{id: getId("Salary", portfolio), income: { monthly: 0 }}],
   change_investment: [
     {id: getId("401k", portfolio), investment: { funding: 0, monthly: 0, useAsCash: true}},
-    {id: getId("savings account", portfolio), investment: { funding: 0, monthly: 0, useAsCash: true}},
+    {id: getId("Savings account", portfolio), investment: { funding: 0, monthly: 0, useAsCash: true}},
   ],
   change_expense: [],
   change_debt: [],
@@ -1027,20 +1027,26 @@ distributionSlider = function() {
   
 }
 
-addNewMod = function() {
+addNewMod = function(type) {
+  var allMods = getAllMods();
   var date;
-  if (mods.length == 0) {
+  if (allMods.length == 0) {
     date = new Date(start);
   } else {
-    date = new Date(mods[mods.length-1][0]);
+    date = new Date(allMods[allMods.length-1][0]);
   }
-  date.setFullYear(date.getFullYear()+1);
+  date.setFullYear(date.getFullYear()+5);
+  if (date.getFullYear() > end.getFullYear() - 5) end.setFullYear(date.getFullYear()+5);
+  
   var newMod = [date, createMod()];
+  mods.push(newMod);
   
-  var idx;
-  for (idx = 0; idx < mods.length && mods[idx][0] <= date; idx++) {}
-  mods.splice(idx, 0, newMod);
-  
+  if (type == 'retire') {
+    newMod[1].name = "Retire";
+  } else if (type == 'buyhouse') {
+    newMod[1].name = "Buy a house";
+	// TODO!
+  }
   refresh();
 }
 
@@ -1237,6 +1243,7 @@ fillModsTable = function() {
       mod[1][changeModKind].splice(found_idx, 1);
 	  refresh();
     });
+  d3.select("#portfolioGrid").node().appendChild(d3.select("#addModButtons").node());
 }
 
 fillModsTable();

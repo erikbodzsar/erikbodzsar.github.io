@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <!--
 TODO:
- fix add new life event button
- template life events!
  one-time deposit / withdrawal
+ template life events!
  clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
  highlight things with mods
  auto-cover expenses when cash runs out!?
@@ -113,6 +112,12 @@ TODO:
 	  border-width: thin;
 	  background-color: #F5F5F5;
 	  width: 100%;
+	}
+	
+	.addNewModButton {
+	  width: 60%;
+	  margin-top: 0.2em;
+	  margin-bottom: 0.2em;
 	}
 	
 	summary {
@@ -296,14 +301,16 @@ Add as many more life events as you’d like!
 </div>
 
 <div class="mdl-grid" id="portfolioGrid">
-  <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet  mdl-cell--6-col-phone" id="initialContainer"></div>
+  <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet mdl-cell--6-col-phone" id="initialContainer"></div>
+  <div class="mdl-cell mdl-cell--3-col mdl-cell--4-col-tablet mdl-cell--6-col-phone" id="addModButtons">
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored addNewModButton" onclick="addNewMod('')">Add new life event</button><br>
+	<!--
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored addNewModButton" onclick="addNewMod('retire')">Retire</button><br>
+    <button class="mdl-button mdl-js-button mdl-button--raised mdl-button--colored addNewModButton" onclick="addNewMod('buyhouse')">Buy a house</button><br>
+	-->
+  </div>
 </div>
 
-
-<div class="mods"></div>
-
-<input type="button" id="addNewMod" value="Add new life event" onclick="addNewMod()">
-	
 	</div>
   </main>
 </div>
