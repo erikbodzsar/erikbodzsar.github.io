@@ -345,8 +345,8 @@ formatTotal = function(t) {
 };
 mouseMove = function() {
   var x = d3.mouse(this)[0];
-//  var y = d3.mouse(this)[1];
   var time = xScale.invert(x);
+  if (time < portfolios[0][0]) return;
   d3.select("#chart").select("#mouseTimeLine")
       .attr("x1", x)
       .attr("x2", x)
