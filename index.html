@@ -4,7 +4,6 @@ TODO:
  one-time deposit / withdrawal
  template life events!
  clear mod if it's the same as the base element (i.e. check & uncheck useAsCash current still leaves the mod there)
- highlight things with mods
  auto-cover expenses when cash runs out!?
  prevent negative cash?
  fix disabled text colors/contrast
@@ -124,6 +123,10 @@ TODO:
 	  font-size: 1.2em;
 	}
 	
+	summary.hasMod {
+	  font-weight: bold;
+	}
+	
 	.container {
 	  background-color: darkgreen;
 	  padding: 2px;
@@ -198,6 +201,13 @@ TODO:
 	  border-style: solid;
 	  margin: 4px;
 	  padding: 2px;
+	}
+	
+	.noMod {
+	}
+	
+	.hasMod {
+	  border-width: medium;
 	}
 	
 	.modName {

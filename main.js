@@ -843,6 +843,17 @@ ancestor = function(node, n) {
   return ancestor(node.parentNode, n-1);
 }
 
+hasMod = function(incomes) {
+  for (var id in incomes) {
+    if (incomes[id].isNew || incomes[id].hasMod) return true;
+  }
+  return false;
+}
+
+applyModStyling = function(kind, selection, getPortfolioFn) {
+  selection.select("summary").attr("class", function(d) { return hasMod(getPortfolioFn(d)[1][kind]) ? "hasMod" : null; });
+}
+
 portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, deleteCb, undoModsCb) {
   var cashContainer = container.select(".cashContainer");
   var cash = cashContainer.select("input");
@@ -852,6 +863,13 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
   }
   cash.attr("value", function(d) { return getPortfolioFn(d)[1].cash; });
   cash.property("value", function(d) { return getPortfolioFn(d)[1].cash; });
+  
+  if (!isInitial) {
+    applyModStyling("incomes", container.select(".incomesOuterContainer"), getPortfolioFn);
+    applyModStyling("expenses", container.select(".expensesOuterContainer"), getPortfolioFn);
+    applyModStyling("investments", container.select(".investmentsOuterContainer"), getPortfolioFn);
+    applyModStyling("debts", container.select(".debtsOuterContainer"), getPortfolioFn);
+  }
   
   var isNumeric = function(property) {
     if (property == "name") return false;
@@ -904,7 +922,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     var currentContainer = container.select("."+kind+"Container");
     var incomes = currentContainer.selectAll("." + kind).data(function(d) { return entries(getPortfolioFn(d)[1][kind]); });
 	incomes.exit().remove();
-	var newIncomes = incomes.enter().append("div").attr("class", kind + " mdl-grid").attr("data-kind", kind).attr("style", "position: relative");
+	var newIncomes = incomes.enter().append("div").attr("data-kind", kind).attr("style", "position: relative");
 	var buttons = newIncomes.append("div").attr("style", "position: absolute; top: 2px; right: 2px; z-index: 2");
 	buttons.append("button")  
 		.attr("class", "undoModsButton mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored")
@@ -931,6 +949,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	allIncomes.attr("data-id", function(d) { return d[0]; });
 	addProperty(newIncomes, allIncomes, "name", isInitial, 6, 4, 2);
 	addProperty(newIncomes, allIncomes, "monthly", true, 6, 4, 2);
+    allIncomes.attr("class", function(d) { return kind + " mdl-grid " + ((d[1].isNew || d[1].hasMod) ? "hasMod" : "noMod"); });
   }
   
   var investmentList = ["investments", "debts"];
