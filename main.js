@@ -1099,22 +1099,27 @@ isNoOpMod = function(date, modKind, change) {
   var p = getPortfolio(date);
   if (modKind == "change_expense") {
     for (var k in change.expense) {
-	  if (p[1].expenses[change.id][k] != change.expense[k]) return false;
+	  var val = p[1].expenses[change.id][k];
+	  if (val != change.expense[k] && !(val === undefined && (change.expense[k] === false))) return false;
 	}
 	return true;
   } else if (modKind == "change_income") {
     for (var k in change.income) {
-	  if (p[1].incomes[change.id][k] != change.income[k]) return false;
+	  var val = p[1].incomes[change.id][k];
+	  if (val != change.income[k] && !(val === undefined && (change.income[k] === false))) return false;
 	}
 	return true;
   } else if (modKind == "change_investment") {
     for (var k in change.investment) {
-	  if (p[1].investments[change.id][k] != change.investment[k]) return false;
+		console.log("xxx", k, p[1].investments[change.id][k], change.investment[k]);
+	  var val = p[1].investments[change.id][k];
+	  if (val != change.investment[k] && !(val === undefined && (change.investment[k] === false))) return false;
 	}
 	return true;
   } else if (modKind == "change_debt") {
     for (var k in change.debt) {
-	  if (p[1].debts[change.id][k] != change.debt[k]) return false;
+	  var val = p[1].debts[change.id][k];
+	  if (val != change.debt[k] && !(val === undefined && (change.debt[k] === false))) return false;
 	}
 	return true;
   }
