@@ -821,6 +821,7 @@ fillInitialTable = function() {
   initialPortfolio.datum(portfolios[0]);
   portfolioTable(initialPortfolio, function(x) { return x; }, true,
       function(data, kind, id, property, value) {
+		if (isNumeric(property) && isNaN(value)) return;
         data[1][kind][id][property] = value;
         validPortfoliosEnd = 1;
     	refresh();
@@ -854,10 +855,19 @@ applyModStyling = function(kind, selection, getPortfolioFn) {
   selection.select("summary").attr("class", function(d) { return hasMod(getPortfolioFn(d)[1][kind]) ? "hasMod" : null; });
 }
 
+isNumeric = function(property) {
+  if (property == "name") return false;
+  return true;
+};
+
 portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, deleteCb, undoModsCb) {
   var cashContainer = container.select(".cashContainer");
   var cash = cashContainer.select("input");
-  cash.on("input", function() { getPortfolioFn(d3.select(this).datum())[1].cash = Number(this.value); validPortfoliosEnd = 1; refresh(); });
+  cash.on("input", function() {
+    if (isNaN(Number(this.value))) return;
+	getPortfolioFn(d3.select(this).datum())[1].cash = Number(this.value);
+	validPortfoliosEnd = 1; refresh();
+  });
   if (!isInitial) {
     cash.attr("disabled", "");
   }
@@ -871,10 +881,6 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     applyModStyling("debts", container.select(".debtsOuterContainer"), getPortfolioFn);
   }
   
-  var isNumeric = function(property) {
-    if (property == "name") return false;
-	return true;
-  };
   var printProperty = function(property, d) {
     if (property == 'monthly' && 'useAsCash' in d[1] && d[1].useAsCash) return "N/A";
     var value = d[1][property];
@@ -900,6 +906,7 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
     var input = inputDiv.append("input")
 	    .on("input", function() { propertyCb(d3.select(ancestor(this, 7)).datum(), d3.select(ancestor(this,3)).attr("data-kind"), d3.select(ancestor(this,3)).attr("data-id"), property, parseProperty(property, this.value)); })
 		.attr("type", "text")
+		.attr("onfocusout", "refresh();")
 		.attr("id", idFn)
 		.attr("size", property == 'name' ? "20" : "9")
 		.attr("class", inputClass + " mdl-textfield__input");
@@ -1182,6 +1189,7 @@ fillModsTable = function() {
   portfolioTable(allModContainers.select(".portfolioBody"), function(d) { return getPortfolio(d[0]); },
     false,
     function(mod, kind, id, property, value) {
+	  if (isNumeric(property) && isNaN(value)) return;
 	  var modKind;
 	  var name;
 	  var newModKind;
