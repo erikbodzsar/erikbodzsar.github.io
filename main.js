@@ -1088,6 +1088,32 @@ disableMod = function(element) {
   refresh();
 }
 
+isNoOpMod = function(date, modKind, change) {
+  var p = getPortfolio(date);
+  if (modKind == "change_expense") {
+    for (var k in change.expense) {
+	  if (p[1].expenses[change.id][k] != change.expense[k]) return false;
+	}
+	return true;
+  } else if (modKind == "change_income") {
+    for (var k in change.income) {
+	  if (p[1].incomes[change.id][k] != change.income[k]) return false;
+	}
+	return true;
+  } else if (modKind == "change_investment") {
+    for (var k in change.investment) {
+	  if (p[1].investments[change.id][k] != change.investment[k]) return false;
+	}
+	return true;
+  } else if (modKind == "change_debt") {
+    for (var k in change.debt) {
+	  if (p[1].debts[change.id][k] != change.debt[k]) return false;
+	}
+	return true;
+  }
+  return false;
+}
+
 fillModsTable = function() {
   var allMods = getAllMods();
   var modContainers = d3.select("#portfolioGrid").selectAll(".modPortfolio").data(allMods);
@@ -1199,7 +1225,14 @@ fillModsTable = function() {
 	  if (mod[1][modKind][found_idx][name] === undefined) {
 	    mod[1][modKind][found_idx][name] = {};
 	  }
-	  mod[1][modKind][found_idx][name][property] = value
+	  mod[1][modKind][found_idx][name][property] = value;
+	  clearPortfoliosAfter(mod[0]);
+	  var oldDisabled = mod[1].disabled;
+	  mod[1].disabled = true;
+	  if (isNoOpMod(mod[0], modKind, mod[1][modKind][found_idx])) {
+	    mod[1][modKind].splice(found_idx, 1);
+	  }
+	  mod[1].disabled = oldDisabled;
 	  clearPortfoliosAfter(mod[0]);
 	  refresh();
     },
