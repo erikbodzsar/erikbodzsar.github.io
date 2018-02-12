@@ -904,7 +904,10 @@ portfolioTable = function(container, getPortfolioFn, isInitial, propertyCb, dele
 	return "" + value;
   };
   var parseProperty = function(property, value) {
-    if (isNumeric(property)) value = Number(value);
+    if (isNumeric(property)) {
+	  if (value.slice(-1) == '.') return NaN;
+	  value = Number(value);
+	}
     if (property == "interest" && d3.select("#interestSelect").node().value == "yearly") {
 	  value = value / 12;
 	}
