@@ -657,7 +657,7 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
   });
   var update = function(x, kind) {
     var old = x.start;
-    if ('useAsCash' in x && x.useAsCash) {
+    if (('useAsCash' in x && x.useAsCash) || (b < 0 && next.cash >= 0 && next.cash + b <= 0)) {
 	  x.start = x.start + x.start * x.interest;
 	  var withdrawal = max(min(-b, x.start), 0);
 	  x.start -= withdrawal;
@@ -670,12 +670,26 @@ fillNextPortfolio = function(portfolio, nextPortfolio) {
 	if (old != 0 && x.start == 0) x.ranOut = true;
 	x.start = roundToCents(x.start);
   };
+
   var kindsToUpdate = ["investments", "debts"];
+  var thingsToUpdate = [];
   for (var i = 0; i < kindsToUpdate.length; i++) {
     var p = kindsToUpdate[i];
     for (var id in next[p]) {
-	  update(next[p][id], p);
+	  thingsToUpdate.push({thing: next[p][id], kind: p});
 	}
+  }
+  thingsToUpdate.sort(function(a, b) {
+    if (a.thing.useAsCash && !b.thing.useAsCash) return -1;
+	if (b.thing.useAsCash && !a.thing.useAsCash) return 1;
+	if (a.kind == "investments" && b.kind != "investments") return -1;
+	if (b.kind == "investments" && a.kind != "investments") return 1;
+	if (a.thing.interest < b.thing.interest) return -1;
+	if (b.thing.interest < a.thing.interest) return 1;
+	return 0;
+  });
+  for (var i = 0; i < thingsToUpdate.length; i++) {
+    update(thingsToUpdate[i].thing, thingsToUpdate[i].kind); 
   }
   next.cash += b;
   return next;
@@ -1111,7 +1125,6 @@ isNoOpMod = function(date, modKind, change) {
 	return true;
   } else if (modKind == "change_investment") {
     for (var k in change.investment) {
-		console.log("xxx", k, p[1].investments[change.id][k], change.investment[k]);
 	  var val = p[1].investments[change.id][k];
 	  if (val != change.investment[k] && !(val === undefined && (change.investment[k] === false))) return false;
 	}
