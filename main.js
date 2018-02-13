@@ -1206,8 +1206,10 @@ fillModsTable = function() {
   allHeaders.select(".modName").select("input").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
   allHeaders.select(".modDate").attr("value", function(d) { return yyyyMmDd(d[0]); });
   allHeaders.select(".modDate").property("value", function(d) { return yyyyMmDd(d[0]); });
-  allHeaders.select(".modDate").attr("value", function(d) { return "2015-02-02"; }); // xxx
-  allHeaders.select(".modDate").property("value", function(d) { return "2015-02-02"; }); // xxx
+  allHeaders.select(".modDate").attr("value", function(d) { return yyyyMmDd(d[0]); });
+  allHeaders.select(".modDate").property("value", function(d) { return yyyyMmDd(d[0]); });
+//  allHeaders.select(".modDate").attr("value", function(d) { return "2015-02-02"; }); // xxx
+//  allHeaders.select(".modDate").property("value", function(d) { return "2015-02-02"; }); // xxx
   var log = "";
   allMods.forEach(function(d) { log += "." + yyyyMmDd(d[0]); });
   d3.select("#log").html(log);
