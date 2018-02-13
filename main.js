@@ -1205,9 +1205,8 @@ fillModsTable = function() {
   allHeaders.select(".modName").select("input").property("value", function(d) { return d[1].name; });
   allHeaders.select(".modName").select("input").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
   allHeaders.select(".modDate").attr("value", function(d) { return yyyyMmDd(d[0]); });
-//  allHeaders.select(".modDate").property("value", function(d) { return yyyyMmDd(d[0]); });
+  allHeaders.select(".modDate").property("value", function(d) { return yyyyMmDd(d[0]); });
   allHeaders.select(".modDate").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
-  allHeaders.select(".modDate").nodes().forEach(function(n) { var disp = n.style.display; n.style.display = "none"; var x = n.offsetHeight; n.style.display = disp; }); // xxx
   portfolioTable(allModContainers.select(".portfolioBody"), function(d) { return getPortfolio(d[0]); },
     false,
     function(mod, kind, id, property, value) {
