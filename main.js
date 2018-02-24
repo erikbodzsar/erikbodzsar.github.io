@@ -28,8 +28,8 @@ upgradeNodes = function(selection) {
 }
 
 setup2 = function() {
-  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
-  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
+  d3.select("#initial").select(".modDate").attr("value", "1986-05-20"); // xxx
+  d3.select("#initial").select(".modDate").property("value", "1986-05-20"); // xxx
 }
 
 setUpInitialPortfolio = function() {
