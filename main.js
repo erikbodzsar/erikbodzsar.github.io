@@ -51,6 +51,7 @@ setUpInitialPortfolio = function() {
 //  d3.select("#initial").select(".modDate").property("value", String(yyyyMmDd(portfolios[0][0])));
   d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
   d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
+  d3.select("body").append("style");
 }
 
 mouseX = 0;
