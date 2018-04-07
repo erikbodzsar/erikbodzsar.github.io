@@ -51,8 +51,6 @@ setUpInitialPortfolio = function() {
 //  d3.select("#initial").select(".modDate").property("value", String(yyyyMmDd(portfolios[0][0])));
   d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
   d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
-  var node = d3.select("#initial").select(".modDate").node();
-  node.style.webkitTransform = node.style.webkitTransform;
   d3.select("body").append("style");
 }
 
