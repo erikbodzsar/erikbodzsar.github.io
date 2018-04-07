@@ -28,13 +28,8 @@ upgradeNodes = function(selection) {
 }
 
 setup2 = function() {
-  var s = d3.select("select");
-  var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  for (var i = 0; i < 100; i++) {
-    for (var j = 0; j <12; j++) {
-	  s.append("option").html(months[j] + " " + (2000 + i));
-	}
-  }
+  d3.select("#initial").select(".modDate").attr("value", "1986-05-20"); // xxx
+  d3.select("#initial").select(".modDate").property("value", "1986-05-20"); // xxx
 }
 
 setUpInitialPortfolio = function() {
