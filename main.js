@@ -27,11 +27,6 @@ upgradeNodes = function(selection) {
   return selection;
 }
 
-setup2 = function() {
-  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
-  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
-}
-
 setUpInitialPortfolio = function() {
   d3.select("#initialContainer").append(function() { return d3.select("#portfolioTemplate").node().cloneNode(true); }).attr("id", "initial");
   /* TODO WHY DONT THESE NEED UPGRADE?! IS MDL INIT AFTER THESE ARE FILLED IN? */
@@ -58,6 +53,7 @@ setUpInitialPortfolio = function() {
   d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
   var node = d3.select("#initial").select(".modDate").node();
   node.style.webkitTransform = node.style.webkitTransform;
+  d3.select("body").append("style");
 }
 
 mouseX = 0;
