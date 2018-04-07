@@ -46,11 +46,10 @@ setUpInitialPortfolio = function() {
 	  portfolios.length = 1;
 	  refresh();
     });
-	d3.select("#log").html("XXX: " + String(yyyyMmDd(portfolios[0][0])) + " :: ");
-//  d3.select("#initial").select(".modDate").attr("value", String(yyyyMmDd(portfolios[0][0])));
-//  d3.select("#initial").select(".modDate").property("value", String(yyyyMmDd(portfolios[0][0])));
-  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
-  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
+  d3.select("#initial").select(".modDate").attr("value", String(yyyyMmDd(portfolios[0][0])));
+  d3.select("#initial").select(".modDate").property("value", String(yyyyMmDd(portfolios[0][0])));
+//  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
+//  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
 }
 
 mouseX = 0;
@@ -1215,7 +1214,7 @@ fillModsTable = function() {
 //  allHeaders.select(".modDate").property("value", function(d) { return "2015-02-02"; }); // xxx
   var log = "";
   allMods.forEach(function(d) { log += "." + yyyyMmDd(d[0]); });
-//  d3.select("#log").html(log);
+  d3.select("#log").html(log);
   allHeaders.select(".modDate").attr("disabled", function(d) { return 'auto' in d[1] ? "" : null; });
   allHeaders.select(".modDate").nodes().forEach(function(n) { var disp = n.style.display; n.style.display = "none"; var x = n.offsetHeight; n.style.display = disp; }); // xxx
   portfolioTable(allModContainers.select(".portfolioBody"), function(d) { return getPortfolio(d[0]); },
