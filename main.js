@@ -19,7 +19,7 @@ incEndDate = function() {
 
 yyyyMmDd = function(date) {
   var pad = function(x) { return x < 10 ? ("0" + x) : ("" + x); };
-  return ("" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()));
+  return "" + date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
 }
 
 upgradeNodes = function(selection) {
