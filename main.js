@@ -46,10 +46,10 @@ setUpInitialPortfolio = function() {
 	  portfolios.length = 1;
 	  refresh();
     });
-  d3.select("#initial").select(".modDate").attr("value", String(yyyyMmDd(portfolios[0][0])));
-  d3.select("#initial").select(".modDate").property("value", String(yyyyMmDd(portfolios[0][0])));
-//  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
-//  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
+  d3.select("#initial").select(".modDate").attr("value", yyyyMmDd(portfolios[0][0]));
+  d3.select("#initial").select(".modDate").property("value", yyyyMmDd(portfolios[0][0]));
+  d3.select("#initial").select(".modDate").attr("value", "1986-08-20"); // xxx
+  d3.select("#initial").select(".modDate").property("value", "1986-08-20"); // xxx
 }
 
 mouseX = 0;
